@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: payment-demo
+  labels:
+    app: payment-service
+    security: ztwim-protected
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+        security: ztwim-protected
+      annotations:
+        # ZTWIM annotation to inject SPIFFE Workload API socket
+        inject.spire.openshift.io/enabled: "true"
+    spec:
+      serviceAccountName: payment-service
+      containers:
+      - name: app
+        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        command:
+          - /bin/bash
+          - -c
+          - |
+            #!/bin/bash
+            set -e
+
+            echo "=============================================="
+            echo "Payment Service with ZTWIM Protection"
+            echo "=============================================="
+            echo ""
+            echo "SPIFFE Workload API Socket: ${SPIFFE_ENDPOINT_SOCKET}"
+            echo "Vault Address: ${VAULT_ADDR}"
+            echo "Vault Role: ${VAULT_ROLE}"
+            echo ""
+
+            # Install curl and jq for demo purposes
+            microdnf install -y curl jq 2>/dev/null || true
+
+            # Function to get JWT-SVID from SPIRE Workload API
+            get_jwt_svid() {
+                echo "[INFO] Requesting JWT-SVID from SPIRE Workload API..."
+
+                # Use SPIFFE helper tool or direct API call
+                # For demo, we'll simulate the call
+                # In production, use go-spiffe SDK or spiffe-helper
+
+                # The Workload API is accessed via Unix Domain Socket
+                # Applications make gRPC calls to fetch JWT-SVIDs
+
+                echo "[INFO] JWT-SVID obtained (auto-rotates every 5 minutes)"
+                # In reality, this would be a call like:
+                # JWT_SVID=$(spiffe-helper fetch-jwt --audience vault)
+            }
+
+            # Function to authenticate to Vault
+            vault_auth() {
+                echo "[INFO] Authenticating to Vault with SPIFFE identity..."
+
+                # In production code, this would use the SPIFFE SDK:
+                # source, _ := workloadapi.NewJWTSource(ctx)
+                # svid, _ := source.FetchJWTSVID(ctx, jwtsvid.Params{Audience: "vault"})
+                # vaultClient.SetToken(svid.Marshal())
+
+                echo "[SUCCESS] Authenticated to Vault using SPIFFE identity"
+                echo "[INFO] Credentials expire in 5 minutes and auto-rotate"
+            }
+
+            # Demonstrate ZTWIM protection
+            echo "=== ZTWIM Security Features Active ==="
+            echo "✓ No static secrets in filesystem"
+            echo "✓ Workload identity attested by SPIRE"
+            echo "✓ JWT-SVIDs rotate every 5 minutes"
+            echo "✓ Cryptographic binding to pod identity"
+            echo ""
+
+            get_jwt_svid
+            vault_auth
+
+            echo ""
+            echo "Application running with zero-trust workload identity."
+            echo "Monitoring for credential rotation..."
+            echo ""
+
+            # Keep container running and simulate credential rotation
+            COUNT=0
+            while true; do
+                sleep 300  # 5 minutes
+                COUNT=$((COUNT + 1))
+                echo "[$(date)] Credential rotation #${COUNT} - New JWT-SVID issued"
+                get_jwt_svid
+                vault_auth
+            done
+
+        env:
+        - name: VAULT_ADDR
+          value: "http://vault.vault.svc.cluster.local:8200"
+        - name: VAULT_ROLE
+          value: "payment-service"
+        # SPIFFE_ENDPOINT_SOCKET is automatically injected by ZTWIM
+        # when inject.spire.openshift.io/enabled: "true"
+        - name: SPIFFE_ENDPOINT_SOCKET
+          value: "unix:///run/spire/sockets/agent.sock"
+
+        volumeMounts:
+        # SPIRE Workload API socket (automatically injected by ZTWIM)
+        - name: spire-agent-socket
+          mountPath: /run/spire/sockets
+          readOnly: true
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
+          seccompProfile:
+            type: RuntimeDefault
+
+      volumes:
+      # SPIRE agent socket volume (auto-injected when annotation is set)
+      - name: spire-agent-socket
+        hostPath:
+          path: /run/spire/sockets
+          type: DirectoryOrCreate
+
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

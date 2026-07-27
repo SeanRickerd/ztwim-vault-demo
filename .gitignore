@@ -1,0 +1,17 @@
+# Temporary files
+/tmp/
+*.swp
+*.swo
+*~
+
+# Demo runtime files
+/tmp/demo-tokens/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.iml
