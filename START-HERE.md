@@ -1,277 +1,147 @@
-# ZTWIM Vault Demo - START HERE! 🚀
+# ZTWIM Realistic Attack Demo - START HERE
 
-## Quick Start (3 Steps)
+## Quick Start
 
-```bash
-# 1. Navigate to demo directory
-cd /home/srickerd/ztwim-vault-demo/scripts
-
-# 2. Test environment (should show all green ✓)
-./test-demo-environment.sh
-
-# 3. Run the demo!
-./demo-runner.sh
-```
-
-Then choose option **1** (Full Demo) from the menu.
-
----
-
-## What This Demo Shows
-
-### 🎯 **The Problem**
-Traditional cloud-native apps use static, long-lived secrets (tokens, passwords, API keys) stored in Kubernetes Secrets or config files. When a pod is compromised, attackers steal these credentials and use them from anywhere for months.
-
-### ⚠️ **Scenario 1: The Attack (Without ZTWIM)**
-Shows a realistic attack where:
-1. Attacker gains shell access to a pod
-2. Steals a 90-day static Vault token
-3. Uses it from outside the cluster
-4. Accesses sensitive PII data (credit cards, SSNs, passwords)
-5. Maintains persistent access for 90 days
-
-**Result:** Complete breach with actual stolen customer data displayed
-
-### ✅ **Scenario 2: The Defense (With ZTWIM)**
-Shows the same attack failing against ZTWIM:
-1. Attacker gains shell access to a pod
-2. No static secrets to steal
-3. JWT-SVIDs expire in 2 minutes
-4. Cannot renew without cryptographic attestation
-5. Attack blocked - no data compromised
-
-**Result:** Attack completely blocked by zero-trust workload identity
-
----
-
-## Demo Structure
-
-```
-╔════════════════════════════════════════════════════════╗
-║  ZTWIM 1.1 + Vault Integration - Adversarial Demo     ║
-╚════════════════════════════════════════════════════════╝
-
-Select demo scenario:
-
-  1) Full Demo (Both Scenarios)              ← Start here!
-  2) Scenario 1: Vulnerable Deployment (Static Vault Token)
-  3) Scenario 2: Protected Deployment (ZTWIM JWT-SVID)
-  4) Setup Only (Deploy Infrastructure)
-  5) Test Environment
-  6) Cleanup (Remove All Resources)
-  q) Quit
-```
-
----
-
-## First Time Setup
-
-If this is your first time running the demo:
+### For Live Presentation:
 
 ```bash
+# 1. Setup (before audience arrives)
 cd /home/srickerd/ztwim-vault-demo/scripts
+./setup-realistic-vulnerable-environment.sh
 
-# Run the interactive demo
-./demo-runner.sh
+# 2. Run interactive demo
+./interactive-attack-demo.sh
 
-# Choose option 4 (Setup Only) first
-# Then choose option 5 (Test Environment) to verify
-# Finally choose option 1 (Full Demo)
+# 3. Read speaker notes while demo runs
+cat /home/srickerd/ztwim-vault-demo/SPEAKER-NOTES.md
 ```
 
 ---
 
-## What You'll See
+## What's In This Demo
 
-### **Scenario 1 Output (Attack Succeeds):**
-```
-⚠️  ATTACK SUCCESSFUL!
+This is a **realistic credential theft attack demonstration** showing:
 
-Attacker successfully accessed sensitive customer data:
-{
-  "credit_card": "4532-1234-5678-9012",
-  "ssn": "123-45-6789",
-  "api_key": "sk-prod-super-secret-key-12345",
-  "database_password": "MySecureP@ssw0rd123!",
-  "customer_name": "John Doe",
-  "account_balance": "$50,000"
-}
+- Real commands executed on live OpenShift cluster
+- Real PostgreSQL database with customer data
+- Real credential theft and data breach
+- $1.2M+ in customer accounts exposed
+- Fraudulent transactions created
+- Complete attack chain from reconnaissance to persistence
 
-Token valid for: 90 days
-Attack origin: External (from outside cluster)
-```
-
-### **Scenario 2 Output (Attack Blocked):**
-```
-✓ ATTACK BLOCKED BY ZTWIM!
-
-Why the attack failed:
-  ✓ No static secrets in pod (nothing to steal)
-  ✓ JWT-SVIDs expire in 2 minutes (minimal blast radius)
-  ✓ SPIRE Workload API requires attestation
-  ✓ Cannot replay credentials from outside the pod
-  ✓ Cannot renew JWT without cryptographic proof
-```
-
-### **Final Comparison:**
-```
-Metric                          Without ZTWIM        With ZTWIM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Token Lifetime                  90 days              2 minutes
-Static Secrets                  Yes                  No
-Identity Binding                None                 Cryptographic
-Replay Window                   90 days              <2 minutes
-Workload Attestation            No                   Yes (SPIRE)
-External Replay Possible        Yes                  No
-Persistent Access               Yes                  No
-Attack Result                   SUCCESS ⚠️           BLOCKED ✓
-```
+**Interactive format:** Script pauses at each step, you press Enter to continue
 
 ---
 
-## Key Talking Points
+## File Guide
 
-**For Security Architects:**
-- Eliminates 90-day breach window → reduces to 2 minutes (97%+ reduction)
-- Cryptographic attestation prevents credential replay
-- No manual rotation required
-- Meets compliance requirements for dynamic secrets
-
-**For Platform Engineers:**
-- SPIFFE/SPIRE standard (CNCF graduated project)
-- Works with any secret store (not just Vault)
-- Integrates with existing OIDC infrastructure
-- OpenShift-native with Security Context Constraints
-
-**For Business Leaders:**
-- Prevents data breaches from stolen credentials
-- Reduces compliance risk
-- No operational overhead for credential rotation
-- Industry-standard zero-trust architecture
-
----
-
-## Demo Timing
-
-- **Full Demo:** ~10-15 minutes
-- **Scenario 1 only:** ~5 minutes
-- **Scenario 2 only:** ~5 minutes
-- **Setup (first time):** ~10 minutes
-
----
-
-## Environment Details
-
-**What's Deployed:**
-
-| Component | Namespace | Purpose |
-|-----------|-----------|---------|
-| HashiCorp Vault | `vault` | Secrets management |
-| ZTWIM Operator | `zero-trust-workload-identity-manager` | Workload identity |
-| Vulnerable App | `vulnerable-app` | Scenario 1 target |
-| Protected App | `payment-demo` | Scenario 2 target |
-
-**Vault Contents:**
-- Sensitive PII data at `secret/customer-data`
-- 90-day static token (Scenario 1)
-- OIDC JWT authentication (Scenario 2)
-
----
-
-## Documentation
+### Main Files (Use These):
 
 | File | Purpose |
 |------|---------|
-| `START-HERE.md` | This file - quick start guide |
-| `DEMO-QUICK-START.md` | 15-minute demo flow |
-| `DEMO-RUNNER-CHANGES.md` | What was updated in demo-runner.sh |
-| `DEMO-FIXES-SUMMARY.md` | All problems fixed |
-| `OPENSHIFT-SCC-GUIDE.md` | OpenShift troubleshooting |
-| `scripts/README.md` | Scripts directory guide |
+| **`INTERACTIVE-DEMO-README.md`** | Quick start guide for the demo |
+| **`SPEAKER-NOTES.md`** | What to say during each phase |
+| **`REALISTIC-DEMO-GUIDE.md`** | Detailed presenter guide with timing |
+| **`DEMO-QUICK-REFERENCE.md`** | One-page cheat sheet |
+
+### Scripts (In `scripts/` directory):
+
+| Script | Purpose |
+|--------|---------|
+| **`interactive-attack-demo.sh`** | 🎯 **Main demo script - run this!** |
+| **`setup-realistic-vulnerable-environment.sh`** | Setup before demo |
+| **`setup-vault.sh`** | Deploy Vault (if needed) |
+| **`setup-ztwim.sh`** | Deploy ZTWIM (for protected scenario) |
+| **`test-demo-environment.sh`** | Verify environment is ready |
+
+### Reference Files:
+
+| File | Purpose |
+|------|---------|
+| `OPENSHIFT-SCC-GUIDE.md` | Troubleshooting OpenShift permissions |
+| `REALISTIC-DEMO-CHANGES.md` | What changed from original demo |
+| `README.md` | Original repo README |
+
+### Archive:
+
+Old/duplicate files moved to `archive/` directory - ignore these.
 
 ---
 
-## Troubleshooting
+## Demo Flow (15-20 minutes)
 
-### Demo won't start?
-```bash
-./test-demo-environment.sh
-# Shows which components are missing
-```
-
-### Scenario 1 attack fails?
-```bash
-./setup-vulnerable-vault.sh
-# Reconfigures vulnerable environment
-```
-
-### Scenario 2 pods won't start?
-```bash
-./fix-demo-deployment-openshift.sh payment-demo payment-service payment-service
-# Fixes OpenShift SCC issues
-```
-
-### Need to reset everything?
-From the demo-runner menu, choose option **6** (Cleanup), then option **4** (Setup).
+1. **Phase 1: Reconnaissance** (2 min) - Find the target
+2. **Phase 2: Initial Compromise** (2 min) - Discover Vault token
+3. **Phase 3: Vault Access** (3 min) - Steal DB creds & API keys
+4. **Phase 4: Database Breach** (5 min) ⚠️ **THE BIG MOMENT** - $1.2M exposed
+5. **Phase 5: Fraud** (3 min) ⚠️ **THE CRIME** - Unauthorized transaction
+6. **Phase 6: Persistence** (2 min) - Deploy backdoor
+7. **Summary** (3 min) - Impact assessment
 
 ---
 
-## For Black Hat / Conference Presentations
+## Quick Commands
 
-**Audience Hook:**
-> "How many of you have Kubernetes Secrets in your clusters? Keep your hands up if those secrets have been there for more than a month. More than a year? Congratulations - you have a 90-day blast radius for every pod compromise. Let me show you what that looks like..."
-
-**Demo Flow:**
-1. Show Scenario 1 (5 min) - emphasize the **actual stolen data**
-2. "Now let's see the same attack with zero-trust..." (1 min)
-3. Show Scenario 2 (4 min) - emphasize **attack completely fails**
-4. Show comparison table (2 min) - emphasize **97% reduction in breach window**
-
-**Closing:**
-> "ZTWIM reduces your blast radius from months to minutes, eliminates static secrets entirely, and requires zero operational overhead. That's the difference between a headline-making breach and a non-event."
-
----
-
-## Support
-
-All required files are present in `/home/srickerd/ztwim-vault-demo/`
-
-**Main demo script:**
 ```bash
+# Setup
 cd /home/srickerd/ztwim-vault-demo/scripts
-./demo-runner.sh
-```
+./setup-realistic-vulnerable-environment.sh
 
-**Quick test:**
-```bash
-./test-demo-environment.sh
+# Verify ready
+oc get pods -n production
+# Should see: customer-database and payment-processor Running
+
+# Run demo
+./interactive-attack-demo.sh
+
+# Cleanup after
+oc delete namespace production
 ```
 
 ---
 
-## Ready to Demo! 🎬
+## What Makes This Demo Powerful
 
-The demo is fully configured and tested. Just run:
-
-```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
-./demo-runner.sh
-```
-
-Choose option **1** and let the demo show the dramatic difference between vulnerable and protected deployments!
+✅ **Real commands** - Actual `oc exec`, `psql`, `curl` - no simulations  
+✅ **Real data** - Live PostgreSQL with customer records  
+✅ **Real impact** - $1,238,652.75 in account balances at risk  
+✅ **Interactive** - Pause at each step, you control the pace  
+✅ **Dramatic** - Builds from discovery to massive breach  
 
 ---
 
-## ✨ NEW: Enhanced Scenario 2!
+## Files You Need
 
-Scenario 2 now shows a **dramatic, step-by-step attack failure** with:
+**Before demo:**
+- Read: `SPEAKER-NOTES.md`
+- Reference: `INTERACTIVE-DEMO-README.md`
 
-- **7 attack attempts** - each one visibly blocked
-- **4 defense layers** - explained with visual feedback
-- **Side-by-side comparison** - SUCCESS vs BLOCKED for every step
-- **Color-coded output** - red (attacker), green (defender), yellow (findings)
+**During demo:**
+- Run: `scripts/interactive-attack-demo.sh`
+- Have open: `SPEAKER-NOTES.md` (second screen)
 
-**Impact:** Just as dramatic as Scenario 1, but shows complete protection!
+**After demo:**
+- Share: GitHub repo link
+- Reference: `DEMO-QUICK-REFERENCE.md` for Q&A
 
-See `SCENARIO-2-ENHANCED.md` for details.
+---
 
+## GitHub Repository
+
+https://github.com/SeanRickerd/ztwim-vault-demo
+
+---
+
+## Success Formula
+
+1. **Setup** before audience arrives
+2. **Run** `interactive-attack-demo.sh`
+3. **Follow** speaker notes for pacing
+4. **Pause** at key moments (customer data, fraud)
+5. **Transition** to ZTWIM prevention demo
+
+**The emotional journey:** Curious → Concerned → Alarmed → **Horrified** → Motivated to fix
+
+---
+
+**Ready to make them say "oh no..." ? Let's go!** 🎯
