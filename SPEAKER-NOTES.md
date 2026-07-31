@@ -2,24 +2,20 @@
 
 ## Overview
 
-This is a live, interactive demonstration showing real commands and output. The script pauses at each key moment waiting for you to press Enter, giving you time to explain what's happening.
+This demo looks like a **real terminal session**. You see commands, press Enter, they execute and show output. Natural, not scripted.
 
-**Duration:** 15-20 minutes (depending on explanation depth)
+**Duration:** 15-20 minutes
 
 ---
 
-## Pre-Demo Setup (Done before audience arrives)
+## How It Works
 
-```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
-./setup-realistic-vulnerable-environment.sh
-```
+- Screen shows: `$ command-to-run`
+- You: Press Enter (silently, no prompt shown)
+- Screen: Executes and shows real output
+- You: Explain what just happened
 
-Verify it's ready:
-```bash
-oc get pods -n production
-# Should see: customer-database and payment-processor both Running
-```
+**It looks exactly like you're typing commands manually.**
 
 ---
 
@@ -30,107 +26,184 @@ cd /home/srickerd/ztwim-vault-demo/scripts
 ./interactive-attack-demo.sh
 ```
 
-The script will pause at each step - you press Enter to continue.
+Press Enter when you see `$` prompts or when comments appear.
 
 ---
 
-## Speaker Notes for Each Phase
+## Phase-by-Phase Speaker Notes
 
-### Opening (Before starting script)
+### Opening Screen
+
+**What appears:**
+```
+================================================================================
+                    PRODUCTION DATABASE BREACH DEMO
+                     Live Attack on OpenShift Cluster
+================================================================================
+
+Scenario: Financial services company using Kubernetes and Vault
+Target: Production payment processing system
+
+Press Enter to begin reconnaissance...
+```
 
 **What to say:**
 
-> "I'm going to show you a realistic breach scenario based on actual incidents we've seen in production environments. Every command you see is real - no simulations, no fake data. This is running on a live OpenShift cluster with a real PostgreSQL database containing customer data."
+> "I'm going to show you a realistic credential theft attack. This is running live on an OpenShift cluster with a real database containing customer data."
 
-> "The scenario: A financial services company using Kubernetes and Vault for secrets management. They think they're following best practices. Let's see what happens when an attacker gets in."
+> "The scenario: A financial services company. They're using Kubernetes, Vault for secrets management. They think they're following best practices."
 
-**[Start the script]**
+> "Let's see what happens when an attacker gets in."
+
+**[Press Enter]**
 
 ---
 
-### PHASE 1: Reconnaissance
+### Phase 1: Reconnaissance
 
-**Commands shown:**
-```bash
+**Screen shows:**
+```
+# Reconnaissance: What's running in production?
+
 $ oc get pods -n production
+```
+
+**What to say:**
+
+> "Attacker starts with reconnaissance. What's running in production?"
+
+**[Press Enter - pods listed]**
+
+> "There's the customer database and the payment processor."
+
+**Screen shows:**
+```
 $ oc get deployment payment-processor -n production
 ```
 
-**What to say:**
+**[Press Enter - deployment shown]**
 
-> "First, the attacker does reconnaissance. They want to understand what's running in the production namespace."
+> "That's the target - the payment processor. This handles financial transactions."
 
-> "There's our target - the payment-processor deployment. This handles financial transactions."
-
-**[Press Enter]**
+**[Press Enter to continue]**
 
 ---
 
-### PHASE 2: Initial Compromise
+### Phase 2: Initial Compromise
 
-**Commands shown:**
-```bash
-$ oc exec... printenv | grep -i vault
+**Screen shows:**
+```
+# Attacker exploits RCE vulnerability, gains shell access to pod
+
+$ export POD=payment-processor-xxxxx
 ```
 
 **What to say:**
 
-> "The attacker exploits an RCE vulnerability - could be Log4Shell, a dependency issue, whatever. They get shell access to the pod."
+> "The attacker exploits an RCE vulnerability. Could be Log4Shell, a dependency issue, whatever. They get shell access to the pod."
 
-> "First thing they do? Check environment variables. Watch this..."
+**[Press Enter - pod name set]**
 
-**[Press Enter - token will be displayed]**
-
-> "There it is. A Vault token. Right there in an environment variable. This is how the app authenticates to Vault to get secrets."
-
-> "Notice it's a static token. And look at the TTL - we'll see it's 90 days. That's 2,160 hours of access if they steal it."
-
-**[Pause for impact]**
+**Screen shows:**
+```
+$ echo "Compromised pod: $POD"
+```
 
 **[Press Enter]**
 
----
+> "Now they have code execution inside the production payment processor."
 
-### PHASE 3: Vault Access
+**Screen shows:**
+```
+# First thing attacker does: search for credentials in environment
 
-**Commands shown:**
-```bash
-$ curl... /v1/secret/data/database/production | jq .data.data
-$ curl... /v1/secret/data/api-keys/production | jq .data.data
+$ oc exec -n production $POD -- printenv | grep -i vault
 ```
 
 **What to say:**
 
-> "Now they use that stolen token to authenticate to Vault. Remember - this token works from anywhere. They don't need to be in the pod anymore."
+> "First thing they do: check environment variables for secrets. Watch this..."
 
-> "Watch what they get..."
+**[Press Enter - credentials displayed]**
 
-**[Press Enter - database creds displayed]**
+```
+VAULT_TOKEN=hvs.CAES...
+VAULT_ADDR=http://vault...
+```
 
-> "Complete database credentials. Hostname, username, password, connection string. Everything."
+> "There it is. A Vault token. Right there in an environment variable."
 
-**[Press Enter]**
+> **[Pause for effect]**
 
-> "And the API keys..."
+> "This is how the app authenticates to Vault. It's a static token. Valid for 90 days. And it works from anywhere."
+
+**[Press Enter to continue]**
+
+---
+
+### Phase 3: Vault Access
+
+**Screen shows:**
+```
+# Attacker uses stolen token to access Vault (from their own infrastructure)
+
+$ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/database/production | jq .data.data'
+```
+
+**What to say:**
+
+> "Now they use that stolen token to authenticate to Vault. And remember - this token works from anywhere. They don't even need to be in the pod anymore."
+
+> "They're operating from their own command and control server now. Could be anywhere in the world."
+
+**[Press Enter - database credentials displayed]**
+
+```json
+{
+  "connection_string": "postgresql://customerdb:SuperSecret123!@...",
+  "database": "customers",
+  "host": "customer-database.production.svc.cluster.local",
+  "password": "SuperSecret123!",
+  "port": "5432",
+  "username": "customerdb"
+}
+```
+
+> "Complete database credentials. Connection string, password, everything."
+
+**[Press Enter to continue]**
+
+**Screen shows:**
+```
+$ oc exec... /v1/secret/data/api-keys/production
+```
 
 **[Press Enter - API keys displayed]**
 
-> "Stripe payment processing. AWS infrastructure access. SendGrid email. Complete system compromise."
+```json
+{
+  "aws_access_key": "AKIAI...",
+  "aws_secret_key": "wJalr...",
+  "sendgrid_api_key": "SG....",
+  "stripe_secret_key": "sk_test_..."
+}
+```
 
-**[Let this sink in]**
+> "And the production API keys. Stripe for payments. AWS for infrastructure. SendGrid for email."
 
-**[Press Enter]**
+> "Complete system compromise at this point."
+
+**[Press Enter to continue]**
 
 ---
 
-### PHASE 4: Database Access - THE BIG MOMENT
+### Phase 4: Database Breach - **THE BIG MOMENT**
 
-**Commands shown:**
-```bash
-$ psql... -c '\dt'
-$ psql... -c 'SELECT COUNT(*) FROM customers;'
-$ psql... -c 'SELECT... FROM customers ORDER BY account_balance DESC LIMIT 5;'
-$ psql... -c 'SELECT SUM(account_balance)...'
+**Screen shows:**
+```
+# Attacker connects to production database using stolen credentials
+
+$ oc exec... psql... -c '\dt'
 ```
 
 **What to say:**
@@ -139,269 +212,328 @@ $ psql... -c 'SELECT SUM(account_balance)...'
 
 **[Press Enter - tables listed]**
 
-> "There's the customers table. Let's see what's in it..."
+```
+            List of relations
+ Schema |    Name      | Type  |   Owner    
+--------+--------------+-------+------------
+ public | customers    | table | customerdb
+ public | transactions | table | customerdb
+```
 
-**[Press Enter - count shown]**
+> "There's the customers table."
 
-> "Ten customers. Let's see who they are..."
-
-**[Press Enter - THIS IS THE MOMENT]**
-
-> "Look at this. Real customer data. Credit card numbers. Social Security numbers. Email addresses. Account balances."
-
-> **[Read from screen slowly]:**
-> "Jennifer Taylor - $267,890"
-> "Emily Rodriguez - $198,500"  
-> "Maria Garcia - $178,950"
-
-> "These are real account balances. This is real money."
-
-**[Pause - let the audience absorb this]**
-
-**[Press Enter - total calculated]**
-
-> "Over $1.2 million dollars in customer accounts. Completely exposed."
+**Screen shows:**
+```
+$ oc exec... 'SELECT COUNT(*) as total_customers FROM customers;'
+```
 
 **[Press Enter]**
 
----
+```
+ total_customers 
+-----------------
+              10
+```
 
-### PHASE 5: Data Manipulation - THE CRIME
+> "Ten customers. Let's see what data is in there..."
 
-**Commands shown:**
-```bash
-$ psql... INSERT INTO transactions... VALUES... 'UNAUTHORIZED'...
-$ psql... SELECT * FROM transactions ORDER BY created_at DESC...
+**Screen shows:**
+```
+# Exfiltrating customer PII - Top 5 accounts by balance
+
+$ oc exec... 'SELECT customer_name, email, account_balance, credit_card, ssn FROM customers ORDER BY account_balance DESC LIMIT 5;'
 ```
 
 **What to say:**
 
-> "But they're not done. They have write access to the database."
+> "Exfiltrating the top accounts..."
 
-> "Watch what they can do..."
+**[Press Enter - THIS IS THE MOMENT]**
 
-**[Press Enter - fraudulent transaction created]**
+```
+  customer_name  |          email           | account_balance |    credit_card      |     ssn     
+-----------------+--------------------------+-----------------+---------------------+-------------
+ Jennifer Taylor | jtaylor@example.com      |       267890.00 | 4532-7777-8888-9999 | 678-90-1234
+ Emily Rodriguez | emily.r@example.com      |       198500.00 | 4024-1111-2222-3333 | 456-78-9012
+ Maria Garcia    | mgarcia@example.com      |       178950.50 | 4532-8888-9999-0000 | 012-34-5678
+ Lisa Wong       | lwong@example.com        |       156780.25 | 5425-9876-5432-1098 | 890-12-3456
+ John Anderson   | john.anderson@example.com|       125430.50 | 4532-1234-5678-9012 | 123-45-6789
+```
 
-> "A $50,000 unauthorized withdrawal. From John Anderson's account."
+> **[Slow down - let them read it]**
 
-> "This is no longer just data theft. **This is financial fraud.** This is a crime."
+> "Look at this. Real customer data."
 
-**[Press Enter - transaction displayed]**
+> "Credit card numbers. Social Security numbers. Account balances."
 
-> "There it is in the transaction log. It looks like a legitimate withdrawal. But it's completely unauthorized."
+> **[Read from screen]:**
+> "Jennifer Taylor - $267,890 in her account."
+> "Emily Rodriguez - $198,500."
+> "Maria Garcia - $178,950."
+
+> "These are real people. Real money."
+
+**[Pause - let this land]**
+
+**[Press Enter to continue]**
+
+**Screen shows:**
+```
+$ oc exec... | xargs echo 'Total money at risk: $'
+```
 
 **[Press Enter]**
 
+```
+Total money at risk: $ 1238652.75
+```
+
+> "Over one-point-two **million dollars** in customer accounts. Completely exposed."
+
+**[Pause again]**
+
+**[Press Enter to continue]**
+
 ---
 
-### PHASE 6: Persistence
+### Phase 5: Data Manipulation - **THE CRIME**
 
-**Commands shown:**
-```bash
-cat <<EOF | oc apply -f -
-[backdoor pod YAML]
-EOF
-$ oc get pod backdoor-exfil -n production
+**Screen shows:**
+```
+# Attacker has WRITE access - creating fraudulent transaction
+
+$ oc exec... INSERT INTO transactions... 'UNAUTHORIZED - Attacker controlled transfer'...
+```
+
+**What to say:**
+
+> "But they're not done. They have write access to this database."
+
+> "Watch what they can do..."
+
+**[Press Enter - transaction created]**
+
+```
+ id | customer_id |  amount   | transaction_type |              description               
+----+-------------+-----------+------------------+---------------------------------------
+  1 |           1 | -50000.00 | withdrawal       | UNAUTHORIZED - Attacker controlled...
+```
+
+> "Fifty thousand dollars. Unauthorized withdrawal. From John Anderson's account."
+
+> **[Pause]**
+
+> "This is no longer just data theft."
+
+> "**This is financial fraud. This is a crime.**"
+
+**[Press Enter to continue]**
+
+**Screen shows:**
+```
+$ oc exec... 'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;'
+```
+
+**[Press Enter]**
+
+> "There it is in the transaction log. It looks like a legitimate withdrawal. But it's completely unauthorized."
+
+**[Press Enter to continue]**
+
+---
+
+### Phase 6: Persistence
+
+**Screen shows:**
+```
+# Deploying backdoor pod for persistent access
+
+$ oc apply -f /tmp/backdoor.yaml
 ```
 
 **What to say:**
 
 > "Finally, they want to make sure they can come back. Even if someone patches the original vulnerability."
 
-> "They deploy what looks like a monitoring pod..."
+> "They're deploying a backdoor. It's going to look like a monitoring pod..."
 
-**[Press Enter - backdoor created]**
+**[Press Enter - pod created]**
+
+```
+pod/backdoor-exfil created
+```
+
+**Screen shows:**
+```
+$ oc get pod backdoor-exfil -n production
+```
+
+**[Press Enter - pod status shown]**
+
+```
+NAME             READY   STATUS    RESTARTS   AGE
+backdoor-exfil   1/1     Running   0          5s
+```
 
 > "It's running. It has the stolen Vault token. It has database access."
 
-**[Press Enter - pod verified]**
+> "Even if we patch the payment processor tonight, they can use this backdoor tomorrow. For the next **90 days**."
 
-> "Even if we patch the payment processor tonight, they can use this backdoor tomorrow. For 90 days."
-
-**[Press Enter]**
+**[Press Enter to see summary]**
 
 ---
 
-### FINAL IMPACT SUMMARY
+### Final Summary
 
 **Screen shows:**
-- Attack timeline
-- Business impact
-- Attacker capabilities
-- Why it succeeded
+```
+================================================================================
+                           ATTACK COMPLETE
+================================================================================
+```
 
 **What to say:**
 
 > "Let's look at what just happened."
 
-> **[Read through attack timeline]**
+**[Read through the timeline]**
 
-> "Eight phases. Complete breach. From initial access to persistent backdoor."
+> "Complete attack chain. From reconnaissance to persistent backdoor."
 
-> **[Business Impact]**
+**[Business Impact section]**
 
-> "Financial loss - potentially the full $1.2 million in fraud."
+> "Business impact:"
 
-> "Regulatory violations - GDPR for the PII, PCI-DSS for the credit cards, SOX for the fraudulent transactions."
+> "Financial loss - potentially the full $1.2 million."
 
-> "Customer trust - destroyed. Once this gets out, people will close their accounts."
+> "Compliance violations - GDPR for the PII exposure. PCI-DSS for the credit cards. SOX for the fraudulent transactions."
+
+> "Customer trust - destroyed. When this gets out, people will close their accounts."
 
 > "Legal liability - class action lawsuits are coming."
 
-> **[Attacker Capabilities]**
+**[Attacker Capabilities section]**
 
-> "And here's the worst part: the attacker has **90 days** of access. 90 days!"
+> "And here's the nightmare: the attacker has **90 days** of access."
 
-> "They can operate from anywhere in the world. Their traffic looks like legitimate application access, so it's hard to detect."
+> "They can operate from anywhere in the world."
+
+> "Their traffic looks like legitimate app access. Hard to detect."
 
 > "They have a backdoor. They have the credentials. They can come back whenever they want."
 
-**[Pause dramatically]**
-
-> **[Why Did This Succeed]**
+**[Why Did This Succeed section]**
 
 > "So why did this attack work?"
 
-> "One: Static credentials. That Vault token is valid for 90 days. Once stolen, it's game over."
+> "One: Static credentials. That Vault token is valid for 90 days."
 
-> "Two: It was in an environment variable. Takes 10 seconds to find."
+> "Two: It was in an environment variable. Takes ten seconds to find."
 
-> "Three: No workload identity. Vault has no way to verify this token is coming from the actual payment processor versus an attacker in Brazil."
+> "Three: No workload identity verification. Vault can't tell if this is the real payment processor or an attacker in Brazil."
 
-> "Four: The token works from anywhere. No attestation. No verification of where the request is coming from."
+> "Four: The token works from anywhere. No location verification. No attestation."
 
 > "Five: One credential equals access to everything. The entire secret store."
 
-> "Six: No automatic rotation. No time-based expiration beyond those 90 days. Nothing."
+> "Six: No automatic rotation. No time-based expiration beyond those 90 days."
 
-**[Final pause]**
+**[Final message]**
 
-> "This is a realistic scenario. We've seen variations of this attack hundreds of times. Different details, same pattern."
+> "This is not a hypothetical scenario. We've seen variations of this attack hundreds of times. Different details, same pattern."
+
+> "Capital One breach - stolen credentials. Uber breach - stolen credentials. SolarWinds - stolen credentials."
+
+> "It's the same story every time."
+
+**[Pause]**
 
 > "Now let me show you how ZTWIM prevents this entire attack chain..."
 
-**[Press Enter to finish]**
-
 ---
 
-## Transition to ZTWIM Demo
+## Pacing Guide
 
-**What to say:**
+### Go Fast:
+- Phase 1 (reconnaissance)
+- Command execution (just press Enter)
+- Parts they already understand
 
-> "So that was the nightmare scenario. $1.2 million breach. 90 days of persistent access. Complete system compromise."
-
-> "Now I'm going to show you the same environment, but protected by ZTWIM - Zero Trust Workload Identity Manager."
-
-> "Same vulnerability. Same initial compromise. But watch what happens..."
-
-**[Switch to ZTWIM demo]**
-
----
-
-## Pacing Tips
-
-### Speed Up:
-- Phase 1 (reconnaissance) - move quickly
-- Pod deployment commands - show but don't dwell
-- Technical details everyone already knows
-
-### Slow Down:
-- **Phase 4 when customer data appears** - This is THE moment
-- When fraudulent transaction is created - This is the crime
-- Final impact summary - Make sure they get the numbers
+### Go Slow:
+- **Phase 4 when customer data appears** - Let them read it
+- **Phase 5 when fraud happens** - This is the crime moment
+- **Final summary** - Make sure they get the numbers
 
 ### Pause:
-- After customer data displays (let them read it)
-- After saying "$1.2 million" (let it land)
-- After "This is a crime" (dramatic moment)
-- After explaining 90-day access (the nightmare persists)
+- After customer data displays (5 seconds)
+- After saying "$1.2 million" (3 seconds)
+- After "This is a crime" (3 seconds)
+- After explaining 90-day access (3 seconds)
 
 ---
 
-## Handling Questions Mid-Demo
+## Key Phrases
 
-### "Is this data real?"
-**Answer:** "Yes. This is a real PostgreSQL database running on this OpenShift cluster. The credit card numbers and SSNs are fake data for the demo, but the database, the breach, the commands - all real."
+Use these exact phrases for maximum impact:
 
-### "Could an attacker really do this?"
-**Answer:** "Absolutely. This attack pattern is based on actual incidents. The Uber breach in 2022 started with stolen credentials. The Capital One breach in 2019 - stolen credentials. SolarWinds - credentials. It's the same pattern every time."
-
-### "Why is the token in an environment variable?"
-**Answer:** "Great question. This is actually really common. It's how many applications authenticate to Vault - they inject the token as an environment variable or mount it as a file. It seems convenient but as you just saw, it's a disaster waiting to happen."
-
-### "Can you show the backdoor code?"
-**Answer:** [After demo] "Sure, it's just a simple pod that sits there with the stolen credentials. The real backdoor is the credentials themselves - 90 days of valid access."
+- "**Real customer data. Real money.**"
+- "**This is financial fraud. This is a crime.**"
+- "**90 days of access.**"
+- "**One-point-two million dollars.**"
+- "**It works from anywhere in the world.**"
 
 ---
 
-## Technical Notes
+## Handling Technical Issues
 
 ### If a command fails:
-- **Stay calm** - Say "Let me check that..."
-- Run: `oc get pods -n production` to verify pods are up
-- If database is down: Skip to next phase, explain "database is restarting but you can see the pattern"
-- **Have screenshots ready** as backup
+- Stay calm: "Let me check that pod status..."
+- Run: `oc get pods -n production`
+- Skip to next phase if needed: "The pattern is clear, let me show you the next step..."
 
-### If demo is running slow:
-- Skip the API keys phase (go straight from DB creds to customer data)
-- Skip the backdoor deployment (just describe it)
-- Focus on Phases 3-5 (the core breach)
+### If database is slow:
+- Fill time: "This is connecting to the actual production database..."
+- Or skip ahead: "Let me show you what the attacker would see..."
 
-### If audience is very technical:
-- Slow down on the Vault API calls
-- Show the JWT structure if asked
-- Explain the Kubernetes Secrets versus Vault distinction
-- Discuss defense-in-depth strategies
-
-### If audience is executive/business:
-- Speed through technical commands
-- Emphasize the dollar amounts
-- Focus on compliance violations
-- Stress the legal/reputational impact
+### If you lose your place:
+- The comments in the output tell you what phase you're in
+- Just keep pressing Enter - the script guides you
 
 ---
 
-## Emotional Beats
+## Success Indicators
 
-This demo is designed to create an emotional journey:
+You know it worked when:
 
-1. **Curiosity** - "Let's see what happens"
-2. **Concern** - "They found the token..."
-3. **Alarm** - "They're in Vault..."
-4. **Horror** - "Oh no, real customer data!" ⚠️
-5. **Despair** - "And they can commit fraud... and they have persistence..."
-6. **Motivation** - "We NEED to prevent this"
-
-The transition to ZTWIM should feel like **relief** - "Wait, you can stop all of this?"
+✅ Someone gasps or says "oh no" during Phase 4  
+✅ Silence during the customer data display (they're reading it)  
+✅ Questions about ZTWIM immediately after  
+✅ "How soon can we implement this?"  
+✅ Security team members taking photos of the screen  
 
 ---
 
-## Post-Demo Debrief
+## The Emotional Journey
 
-After showing both demos (vulnerable + ZTWIM):
+This demo creates a specific arc:
 
-**Summary points:**
+1. **Curious** - "Let's see what happens"
+2. **Concerned** - "They got the token..."
+3. **Alarmed** - "They're in the database..."
+4. **Horrified** - "Those are REAL account balances!" ⚠️
+5. **Despair** - "And they can commit fraud... for 90 days..."
+6. **Motivated** - "We NEED to fix this"
 
-> "What you just saw: A $1.2 million breach with 90 days of persistent access... completely prevented by ZTWIM."
-
-> "The key difference: ZTWIM eliminates static credentials. Instead of a 90-day token in an environment variable, you get a 2-minute JWT-SVID that's cryptographically bound to the workload."
-
-> "That's a 97% reduction in breach window. From 90 days to 2 minutes."
-
-> "And it's zero operational overhead. No manual rotation. No credential sprawl. It just works."
-
----
-
-## Success Metrics
-
-**You know it worked when:**
-
-- Someone says "oh no" or gasps when customer data appears
-- Questions about implementing ZTWIM
-- Requests for the demo code
-- "How soon can we do this?" questions
-- Security team members taking notes during Phase 4
+The transition to ZTWIM should feel like **relief** and **hope**.
 
 ---
 
-**Remember: The power is in the real commands and real output. Let the data speak for itself. Your job is to narrate the journey from curiosity to horror to solution.**
+## Remember
+
+- You're just pressing Enter
+- The script makes it look like a real terminal session
+- Your job is to narrate what's happening
+- Let the data speak for itself
+- **The horror is in the numbers: $1.2M, 90 days, 10 customers**
+
+**You're not running a script. You're showing them a breach in progress.** 🎯
