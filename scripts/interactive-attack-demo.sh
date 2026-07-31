@@ -1,13 +1,14 @@
 #!/bin/bash
 # Interactive Attack Demo - Pure Terminal Session
-# Just commands and output, no commentary
+# Blank prompt -> press Enter -> command appears -> executes
 
 set -e
 
 run_cmd() {
     local cmd="$1"
-    echo "\$ $cmd"
+    echo -n "\$ "
     read -s
+    echo "$cmd"
     eval "$cmd"
     echo ""
 }
