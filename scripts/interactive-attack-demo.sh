@@ -1,14 +1,25 @@
 #!/bin/bash
 # Interactive Attack Demo - Pure Terminal Session
-# Blank prompt -> press Enter -> command appears -> executes
+# Blank prompt -> press Enter -> command types out -> executes
 
 set -e
+
+type_command() {
+    local cmd="$1"
+    local delay="0.05"  # Delay between characters (adjustable)
+
+    for (( i=0; i<${#cmd}; i++ )); do
+        echo -n "${cmd:$i:1}"
+        sleep $delay
+    done
+    echo ""
+}
 
 run_cmd() {
     local cmd="$1"
     echo -n "\$ "
     read -s
-    echo "$cmd"
+    type_command "$cmd"
     eval "$cmd"
     echo ""
 }
