@@ -182,7 +182,14 @@ echo ""
 # Configure Vault with database credentials
 echo -e "${BLUE}[4/6] Storing database credentials in Vault...${NC}"
 
-VAULT_POD=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}')
+# Check if Vault is running
+VAULT_POD=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+if [[ -z "$VAULT_POD" ]]; then
+    echo -e "${RED}ERROR: Vault not found in namespace ${VAULT_NS}${NC}"
+    echo -e "${YELLOW}Please run ./setup-vault.sh first${NC}"
+    exit 1
+fi
+
 VAULT_ADDR="http://vault.${VAULT_NS}.svc.cluster.local:8200"
 
 # Store database credentials in Vault
