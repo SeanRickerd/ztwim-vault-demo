@@ -115,10 +115,7 @@ spec:
         - vault
         - server
         - -dev
-        securityContext:
-          capabilities:
-            add:
-            - IPC_LOCK
+        - -dev-no-store-token
 EOF
 
     echo -e "${BLUE}Waiting for Vault to be ready...${NC}"
