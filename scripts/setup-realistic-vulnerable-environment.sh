@@ -98,6 +98,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: vault
+        app.kubernetes.io/instance: vault
+        component: server
     spec:
       serviceAccountName: vault
       containers:
