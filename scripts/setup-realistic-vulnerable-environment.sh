@@ -89,7 +89,7 @@ spec:
       serviceAccountName: vault
       containers:
       - name: vault
-        image: docker.io/hashicorp/vault:1.17
+        image: docker.io/hashicorp/vault:1.18
         ports:
         - containerPort: 8200
           name: http
