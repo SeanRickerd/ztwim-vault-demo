@@ -8,6 +8,7 @@
 # 1. Setup (before audience arrives)
 cd /home/srickerd/ztwim-vault-demo/scripts
 ./setup-realistic-vulnerable-environment.sh
+# This automatically deploys Vault + database + vulnerable app
 
 # 2. Run interactive demo
 ./interactive-attack-demo.sh
@@ -49,8 +50,7 @@ This is a **realistic credential theft attack demonstration** showing:
 | Script | Purpose |
 |--------|---------|
 | **`interactive-attack-demo.sh`** | 🎯 **Main demo script - run this!** |
-| **`setup-realistic-vulnerable-environment.sh`** | Setup before demo |
-| **`setup-vault.sh`** | Deploy Vault (if needed) |
+| **`setup-realistic-vulnerable-environment.sh`** | Setup before demo (includes Vault) |
 | **`setup-ztwim.sh`** | Deploy ZTWIM (for protected scenario) |
 | **`test-demo-environment.sh`** | Verify environment is ready |
 

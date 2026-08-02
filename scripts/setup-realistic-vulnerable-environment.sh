@@ -18,14 +18,115 @@ echo -e "${BLUE}|  Setting Up Realistic Vulnerable Environment                  
 echo -e "${BLUE}+====================================================================+${NC}"
 echo ""
 
+# Check and deploy Vault if needed
+echo -e "${BLUE}[0/7] Checking for Vault...${NC}"
+VAULT_CHECK=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+if [[ -z "$VAULT_CHECK" ]]; then
+    echo -e "${YELLOW}Vault not found - deploying Vault...${NC}"
+
+    # Create vault namespace
+    oc create namespace ${VAULT_NS} 2>/dev/null || true
+
+    # Deploy Vault in dev mode
+    cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: ${VAULT_NS}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-anyuid
+  namespace: ${VAULT_NS}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+- kind: ServiceAccount
+  name: vault
+  namespace: ${VAULT_NS}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: ${VAULT_NS}
+  labels:
+    app.kubernetes.io/name: vault
+spec:
+  ports:
+  - port: 8200
+    targetPort: 8200
+    name: http
+  selector:
+    app.kubernetes.io/name: vault
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  namespace: ${VAULT_NS}
+  labels:
+    app.kubernetes.io/name: vault
+spec:
+  serviceName: vault
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vault
+    spec:
+      serviceAccountName: vault
+      containers:
+      - name: vault
+        image: docker.io/hashicorp/vault:1.17
+        ports:
+        - containerPort: 8200
+          name: http
+        env:
+        - name: VAULT_DEV_ROOT_TOKEN_ID
+          value: "root"
+        - name: VAULT_DEV_LISTEN_ADDRESS
+          value: "0.0.0.0:8200"
+        command:
+        - vault
+        - server
+        - -dev
+        securityContext:
+          capabilities:
+            add:
+            - IPC_LOCK
+EOF
+
+    echo -e "${BLUE}Waiting for Vault to be ready...${NC}"
+    sleep 10
+    oc wait --for=condition=ready pod -l app.kubernetes.io/name=vault -n ${VAULT_NS} --timeout=120s || true
+
+    # Enable KV secrets engine
+    sleep 5
+    oc exec -n ${VAULT_NS} vault-0 -- vault login root >/dev/null 2>&1
+    oc exec -n ${VAULT_NS} vault-0 -- vault secrets enable -path=secret kv-v2 2>/dev/null || true
+
+    echo -e "${GREEN}✓ Vault deployed and ready${NC}"
+else
+    echo -e "${GREEN}✓ Vault already running${NC}"
+fi
+echo ""
+
 # Create production namespace
-echo -e "${BLUE}[1/6] Creating production namespace...${NC}"
+echo -e "${BLUE}[1/7] Creating production namespace...${NC}"
 oc create namespace ${VULNERABLE_NS} 2>/dev/null || true
 echo -e "${GREEN}✓ Namespace created${NC}"
 echo ""
 
 # Deploy PostgreSQL with customer data
-echo -e "${BLUE}[2/6] Deploying customer database (PostgreSQL)...${NC}"
+echo -e "${BLUE}[2/7] Deploying customer database (PostgreSQL)...${NC}"
 cat <<EOF | oc apply -f -
 apiVersion: v1
 kind: Secret
@@ -131,14 +232,14 @@ echo -e "${GREEN}✓ Customer database deployed${NC}"
 echo ""
 
 # Wait for database to be ready
-echo -e "${BLUE}[3/6] Waiting for database to be ready...${NC}"
+echo -e "${BLUE}[3/7] Waiting for database to be ready...${NC}"
 sleep 10
 oc wait --for=condition=ready pod -l app=customer-database -n ${VULNERABLE_NS} --timeout=120s
 echo -e "${GREEN}✓ Database is ready${NC}"
 echo ""
 
 # Initialize database with customer data
-echo -e "${BLUE}[3.5/6] Initializing database with customer data...${NC}"
+echo -e "${BLUE}[4/7] Initializing database with customer data...${NC}"
 DB_POD=$(oc get pod -n ${VULNERABLE_NS} -l app=customer-database -o jsonpath='{.items[0].metadata.name}')
 
 cat <<'EOSQL' | oc exec -i -n ${VULNERABLE_NS} ${DB_POD} -- psql -U customerdb -d customers
@@ -180,15 +281,10 @@ echo -e "${GREEN}✓ Database initialized with 10 customer records${NC}"
 echo ""
 
 # Configure Vault with database credentials
-echo -e "${BLUE}[4/6] Storing database credentials in Vault...${NC}"
+echo -e "${BLUE}[5/7] Storing database credentials in Vault...${NC}"
 
-# Check if Vault is running
-VAULT_POD=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
-if [[ -z "$VAULT_POD" ]]; then
-    echo -e "${RED}ERROR: Vault not found in namespace ${VAULT_NS}${NC}"
-    echo -e "${YELLOW}Please run ./setup-vault.sh first${NC}"
-    exit 1
-fi
+# Get Vault pod name
+VAULT_POD=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}')
 
 VAULT_ADDR="http://vault.${VAULT_NS}.svc.cluster.local:8200"
 
@@ -212,7 +308,7 @@ echo -e "${GREEN}✓ Database credentials stored in Vault${NC}"
 echo ""
 
 # Create vulnerable application with static Vault token
-echo -e "${BLUE}[5/6] Deploying vulnerable payment processing application...${NC}"
+echo -e "${BLUE}[6/7] Deploying vulnerable payment processing application...${NC}"
 
 # Create a 90-day Vault token
 VAULT_TOKEN=$(oc exec -n ${VAULT_NS} ${VAULT_POD} -- vault token create \
@@ -298,7 +394,7 @@ echo "${VAULT_ADDR}" > /tmp/demo-tokens/vault-addr.txt
 echo "${VULNERABLE_NS}" > /tmp/demo-tokens/vulnerable-namespace.txt
 
 # Wait for app to be ready
-echo -e "${BLUE}[6/6] Waiting for application to be ready...${NC}"
+echo -e "${BLUE}[7/7] Waiting for application to be ready...${NC}"
 oc wait --for=condition=ready pod -l app=payment-processor -n ${VULNERABLE_NS} --timeout=120s
 echo -e "${GREEN}✓ Application is ready${NC}"
 echo ""
