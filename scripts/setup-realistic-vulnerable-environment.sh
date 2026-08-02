@@ -27,6 +27,10 @@ if [[ -z "$VAULT_CHECK" ]]; then
     # Create vault namespace
     oc create namespace ${VAULT_NS} 2>/dev/null || true
 
+    # Delete existing StatefulSet if it exists (can't update immutable fields)
+    oc delete statefulset vault -n ${VAULT_NS} 2>/dev/null || true
+    sleep 3
+
     # Deploy Vault in dev mode
     cat <<EOF | oc apply -f -
 apiVersion: v1
