@@ -57,15 +57,19 @@ spec:
     spec:
       containers:
       - name: postgres
-        image: postgres:15-alpine
+        image: registry.redhat.io/rhel9/postgresql-15:latest
         ports:
         - containerPort: 5432
-        envFrom:
-        - secretRef:
-            name: postgres-secret
+        env:
+        - name: POSTGRESQL_USER
+          value: customerdb
+        - name: POSTGRESQL_PASSWORD
+          value: SuperSecret123!
+        - name: POSTGRESQL_DATABASE
+          value: customers
         volumeMounts:
         - name: init-script
-          mountPath: /docker-entrypoint-initdb.d
+          mountPath: /opt/app-root/src/postgresql-init
       volumes:
       - name: init-script
         configMap:
@@ -131,6 +135,48 @@ echo -e "${BLUE}[3/6] Waiting for database to be ready...${NC}"
 sleep 10
 oc wait --for=condition=ready pod -l app=customer-database -n ${VULNERABLE_NS} --timeout=120s
 echo -e "${GREEN}✓ Database is ready${NC}"
+echo ""
+
+# Initialize database with customer data
+echo -e "${BLUE}[3.5/6] Initializing database with customer data...${NC}"
+DB_POD=$(oc get pod -n ${VULNERABLE_NS} -l app=customer-database -o jsonpath='{.items[0].metadata.name}')
+
+cat <<'EOSQL' | oc exec -i -n ${VULNERABLE_NS} ${DB_POD} -- psql -U customerdb -d customers
+CREATE TABLE IF NOT EXISTS customers (
+  id SERIAL PRIMARY KEY,
+  customer_name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) NOT NULL,
+  account_balance DECIMAL(10,2) NOT NULL,
+  credit_card VARCHAR(19) NOT NULL,
+  ssn VARCHAR(11) NOT NULL,
+  account_type VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO customers (customer_name, email, account_balance, credit_card, ssn, account_type) VALUES
+('John Anderson', 'john.anderson@example.com', 125430.50, '4532-1234-5678-9012', '123-45-6789', 'premium'),
+('Sarah Martinez', 'sarah.m@example.com', 87250.00, '5425-2334-5566-7788', '234-56-7890', 'premium'),
+('Michael Chen', 'mchen@example.com', 52800.25, '4916-3344-5566-7799', '345-67-8901', 'business'),
+('Emily Rodriguez', 'emily.r@example.com', 198500.00, '4024-1111-2222-3333', '456-78-9012', 'premium'),
+('David Kim', 'dkim@example.com', 33750.75, '5425-4444-5555-6666', '567-89-0123', 'standard'),
+('Jennifer Taylor', 'jtaylor@example.com', 267890.00, '4532-7777-8888-9999', '678-90-1234', 'premium'),
+('Robert Lee', 'rlee@example.com', 45200.50, '4916-1234-5678-9012', '789-01-2345', 'business'),
+('Lisa Wong', 'lwong@example.com', 156780.25, '5425-9876-5432-1098', '890-12-3456', 'premium'),
+('James Brown', 'jbrown@example.com', 92100.00, '4024-5555-6666-7777', '901-23-4567', 'business'),
+('Maria Garcia', 'mgarcia@example.com', 178950.50, '4532-8888-9999-0000', '012-34-5678', 'premium')
+ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id SERIAL PRIMARY KEY,
+  customer_id INTEGER REFERENCES customers(id),
+  amount DECIMAL(10,2) NOT NULL,
+  transaction_type VARCHAR(20) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+EOSQL
+
+echo -e "${GREEN}✓ Database initialized with 10 customer records${NC}"
 echo ""
 
 # Configure Vault with database credentials
