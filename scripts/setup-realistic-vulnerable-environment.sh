@@ -365,7 +365,7 @@ spec:
     spec:
       containers:
       - name: app
-        image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+        image: registry.access.redhat.com/ubi9/ubi:latest
         command:
         - /bin/bash
         - -c
@@ -383,7 +383,7 @@ spec:
           echo "⚠️  Token stored in environment variable"
           echo ""
           # Install PostgreSQL client and jq for database operations
-          microdnf install -y postgresql jq && microdnf clean all
+          dnf install -y postgresql jq && dnf clean all
           echo "Database client and tools installed"
           echo ""
           echo "Application ready to process payments..."
