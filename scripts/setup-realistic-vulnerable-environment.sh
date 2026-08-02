@@ -141,6 +141,30 @@ echo ""
 # Create production namespace
 echo -e "${BLUE}[1/7] Creating production namespace...${NC}"
 oc create namespace ${VULNERABLE_NS} 2>/dev/null || true
+
+# Grant anyuid SCC for the payment processor to run as root and install packages
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payment-processor
+  namespace: ${VULNERABLE_NS}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: payment-processor-anyuid
+  namespace: ${VULNERABLE_NS}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid
+subjects:
+- kind: ServiceAccount
+  name: payment-processor
+  namespace: ${VULNERABLE_NS}
+EOF
+
 echo -e "${GREEN}✓ Namespace created${NC}"
 echo ""
 
@@ -363,9 +387,14 @@ spec:
       labels:
         app: payment-processor
     spec:
+      serviceAccountName: payment-processor
+      securityContext:
+        runAsUser: 0
       containers:
       - name: app
         image: registry.access.redhat.com/ubi9/ubi:latest
+        securityContext:
+          runAsUser: 0
         command:
         - /bin/bash
         - -c
