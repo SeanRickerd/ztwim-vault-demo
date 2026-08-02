@@ -126,8 +126,8 @@ EOF
 
     # Enable KV secrets engine
     echo -e "${BLUE}Configuring Vault...${NC}"
-    oc exec -n ${VAULT_NS} vault-0 -- vault login root >/dev/null 2>&1
-    oc exec -n ${VAULT_NS} vault-0 -- vault secrets enable -path=secret kv-v2 2>/dev/null || true
+    oc exec -n ${VAULT_NS} vault-0 -- sh -c 'VAULT_ADDR=http://127.0.0.1:8200 vault login root' >/dev/null 2>&1
+    oc exec -n ${VAULT_NS} vault-0 -- sh -c 'VAULT_ADDR=http://127.0.0.1:8200 vault secrets enable -path=secret kv-v2' 2>/dev/null || true
 
     echo -e "${GREEN}✓ Vault deployed and ready${NC}"
 else
