@@ -20,16 +20,29 @@ echo ""
 
 # Check and deploy Vault if needed
 echo -e "${BLUE}[0/7] Checking for Vault...${NC}"
-VAULT_CHECK=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+
+# Create vault namespace
+oc create namespace ${VAULT_NS} 2>/dev/null || true
+
+# Check if Vault StatefulSet exists
+VAULT_STS=$(oc get statefulset vault -n ${VAULT_NS} -o jsonpath='{.metadata.name}' 2>/dev/null || echo "")
+if [[ -n "$VAULT_STS" ]]; then
+    # Check if it's running the correct image
+    VAULT_IMAGE=$(oc get statefulset vault -n ${VAULT_NS} -o jsonpath='{.spec.template.spec.containers[0].image}')
+    if [[ "$VAULT_IMAGE" != "docker.io/hashicorp/vault:1.18" ]]; then
+        echo -e "${YELLOW}Vault found with wrong image ($VAULT_IMAGE) - redeploying...${NC}"
+        oc delete statefulset vault -n ${VAULT_NS}
+        sleep 5
+        VAULT_CHECK=""
+    else
+        VAULT_CHECK=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+    fi
+else
+    VAULT_CHECK=""
+fi
+
 if [[ -z "$VAULT_CHECK" ]]; then
-    echo -e "${YELLOW}Vault not found - deploying Vault...${NC}"
-
-    # Create vault namespace
-    oc create namespace ${VAULT_NS} 2>/dev/null || true
-
-    # Delete existing StatefulSet if it exists (can't update immutable fields)
-    oc delete statefulset vault -n ${VAULT_NS} 2>/dev/null || true
-    sleep 3
+    echo -e "${YELLOW}Deploying Vault...${NC}"
 
     # Deploy Vault in dev mode
     cat <<EOF | oc apply -f -
