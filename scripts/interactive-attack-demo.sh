@@ -51,17 +51,17 @@ run_cmd "oc exec -n production \$POD -- sh -c 'curl -sf -H \"X-Vault-Token: \$VA
 
 run_cmd "oc exec -n production \$POD -- sh -c 'curl -sf -H \"X-Vault-Token: \$VAULT_TOKEN\" \$VAULT_ADDR/v1/secret/data/api-keys/production | jq .data.data'"
 
-run_cmd "oc exec -n production \$POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c '\\dt'"
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"\\dt\"'"
 
-run_cmd "oc exec -n production \$POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c 'SELECT COUNT(*) as total_customers FROM customers;'"
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"SELECT COUNT(*) as total_customers FROM customers;\"'"
 
-run_cmd "oc exec -n production \$POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c 'SELECT customer_name, email, account_balance, credit_card, ssn FROM customers ORDER BY account_balance DESC LIMIT 5;'"
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"SELECT customer_name, email, account_balance, credit_card, ssn FROM customers ORDER BY account_balance DESC LIMIT 5;\"'"
 
-run_cmd "oc exec -n production \$POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -t -c 'SELECT SUM(account_balance) as total_at_risk FROM customers;' | xargs echo 'Total at risk: \$'"
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -t -c \"SELECT SUM(account_balance) as total_at_risk FROM customers;\"' | xargs echo 'Total at risk: \$'"
 
-run_cmd "oc exec -n production \$POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"INSERT INTO transactions (customer_id, amount, transaction_type, description) VALUES (1, -50000.00, 'withdrawal', 'UNAUTHORIZED - Attacker controlled transfer') RETURNING *;\""
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"INSERT INTO transactions (customer_id, amount, transaction_type, description) VALUES (1, -50000.00, '\"'\"'withdrawal'\"'\"', '\"'\"'UNAUTHORIZED - Attacker controlled transfer'\"'\"') RETURNING *;\"'"
 
-run_cmd "oc exec -n production \$POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c 'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;'"
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;\"'"
 
 VAULT_TOKEN=$(oc exec -n production $POD -- printenv VAULT_TOKEN)
 
