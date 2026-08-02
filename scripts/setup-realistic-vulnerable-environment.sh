@@ -382,9 +382,9 @@ spec:
           echo "⚠️  Using static Vault token (90-day TTL)"
           echo "⚠️  Token stored in environment variable"
           echo ""
-          # Install PostgreSQL client for database operations
-          microdnf install -y postgresql && microdnf clean all
-          echo "Database client installed"
+          # Install PostgreSQL client and jq for database operations
+          microdnf install -y postgresql jq && microdnf clean all
+          echo "Database client and tools installed"
           echo ""
           echo "Application ready to process payments..."
           sleep infinity
