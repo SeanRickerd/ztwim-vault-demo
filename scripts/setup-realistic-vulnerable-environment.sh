@@ -308,20 +308,20 @@ VAULT_POD=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpat
 VAULT_ADDR="http://vault.${VAULT_NS}.svc.cluster.local:8200"
 
 # Store database credentials in Vault
-oc exec -n ${VAULT_NS} ${VAULT_POD} -- vault kv put secret/database/production \
-  host="customer-database.${VULNERABLE_NS}.svc.cluster.local" \
-  port="5432" \
-  username="customerdb" \
-  password="SuperSecret123!" \
-  database="customers" \
-  connection_string="postgresql://customerdb:SuperSecret123!@customer-database.${VULNERABLE_NS}.svc.cluster.local:5432/customers"
+oc exec -n ${VAULT_NS} ${VAULT_POD} -- sh -c "VAULT_ADDR=http://127.0.0.1:8200 vault kv put secret/database/production \
+  host='customer-database.${VULNERABLE_NS}.svc.cluster.local' \
+  port='5432' \
+  username='customerdb' \
+  password='SuperSecret123!' \
+  database='customers' \
+  connection_string='postgresql://customerdb:SuperSecret123!@customer-database.${VULNERABLE_NS}.svc.cluster.local:5432/customers'"
 
 # Also store API keys and other sensitive data
-oc exec -n ${VAULT_NS} ${VAULT_POD} -- vault kv put secret/api-keys/production \
-  stripe_secret_key="sk_test_FAKE_1234567890abcdefghijk" \
-  aws_access_key="AKIAIOSFODNN7EXAMPLE" \
-  aws_secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" \
-  sendgrid_api_key="SG.FAKE1234567890abcdefghijklmnop"
+oc exec -n ${VAULT_NS} ${VAULT_POD} -- sh -c "VAULT_ADDR=http://127.0.0.1:8200 vault kv put secret/api-keys/production \
+  stripe_secret_key='sk_test_FAKE_1234567890abcdefghijk' \
+  aws_access_key='AKIAIOSFODNN7EXAMPLE' \
+  aws_secret_key='wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' \
+  sendgrid_api_key='SG.FAKE1234567890abcdefghijklmnop'"
 
 echo -e "${GREEN}✓ Database credentials stored in Vault${NC}"
 echo ""
@@ -330,10 +330,10 @@ echo ""
 echo -e "${BLUE}[6/7] Deploying vulnerable payment processing application...${NC}"
 
 # Create a 90-day Vault token
-VAULT_TOKEN=$(oc exec -n ${VAULT_NS} ${VAULT_POD} -- vault token create \
+VAULT_TOKEN=$(oc exec -n ${VAULT_NS} ${VAULT_POD} -- sh -c "VAULT_ADDR=http://127.0.0.1:8200 vault token create \
   -policy=default \
   -ttl=2160h \
-  -format=json | jq -r '.auth.client_token')
+  -format=json" | jq -r '.auth.client_token')
 
 cat <<EOF | oc apply -f -
 apiVersion: v1
