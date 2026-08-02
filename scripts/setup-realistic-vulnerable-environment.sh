@@ -109,17 +109,22 @@ spec:
 EOF
 
     echo -e "${BLUE}Waiting for Vault to be ready...${NC}"
+    oc wait --for=condition=ready pod -l app.kubernetes.io/name=vault -n ${VAULT_NS} --timeout=120s
+
+    # Wait a bit longer for Vault to fully initialize
     sleep 10
-    oc wait --for=condition=ready pod -l app.kubernetes.io/name=vault -n ${VAULT_NS} --timeout=120s || true
 
     # Enable KV secrets engine
-    sleep 5
+    echo -e "${BLUE}Configuring Vault...${NC}"
     oc exec -n ${VAULT_NS} vault-0 -- vault login root >/dev/null 2>&1
     oc exec -n ${VAULT_NS} vault-0 -- vault secrets enable -path=secret kv-v2 2>/dev/null || true
 
     echo -e "${GREEN}✓ Vault deployed and ready${NC}"
 else
     echo -e "${GREEN}✓ Vault already running${NC}"
+    # Still need to wait for it to be ready
+    echo -e "${BLUE}Waiting for Vault to be ready...${NC}"
+    oc wait --for=condition=ready pod -l app.kubernetes.io/name=vault -n ${VAULT_NS} --timeout=120s
 fi
 echo ""
 
