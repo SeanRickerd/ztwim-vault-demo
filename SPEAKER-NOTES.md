@@ -444,3 +444,223 @@ local delay="0.05"  # Make smaller for faster, bigger for slower
 ---
 
 **You're not running a script. You're showing them a breach in real-time.** 🎯
+
+---
+
+---
+
+# PART 2: ZTWIM PROTECTION DEMO
+
+## Transition (Critical Moment)
+
+**Screen shows:**
+```
+================================================================================
+                    NOW LET'S SEE ZTWIM PREVENTION
+================================================================================
+```
+
+**What to say:**
+
+> **[Pause after the vulnerable attack summary]**
+
+> "So we've just watched a complete breach. Over one million dollars compromised. Ninety days of persistent access."
+
+> **[Pause]**
+
+> "Now... let me show you what happens when we protect this exact same workload with ZTWIM."
+
+> **[Press Enter]**
+
+> "Same cluster. Same Vault. Same database. But this time, the workload uses dynamic credentials instead of static tokens."
+
+---
+
+## Phase 1: Protected Pod Discovery
+
+```
+$ export PROTECTED_POD=payment-processor-protected-xxxxx
+$ echo "Protected pod: $PROTECTED_POD"
+```
+
+**What to say:**
+
+> "This is our ZTWIM-protected payment processor. It does the exact same job as the vulnerable one."
+
+> "Let's try the same attack..."
+
+---
+
+## Phase 2: Credential Theft Attempt - **THE TURNING POINT**
+
+```
+$ oc exec -n production-protected $PROTECTED_POD -- printenv | grep -i vault
+No static VAULT_TOKEN found
+```
+
+**What to say:**
+
+> "First step of the attack: check environment variables for credentials..."
+
+> **[After output appears]**
+
+> "No static VAULT_TOKEN found."
+
+> **[Pause - let that sink in for 3 seconds]**
+
+> "The credential simply isn't there. ZTWIM delivers credentials through a Unix domain socket, not environment variables."
+
+> "There's nothing to steal with printenv."
+
+---
+
+## Phase 3: Process Check
+
+```
+$ oc exec -n production-protected $PROTECTED_POD -- ps aux | head -5
+```
+
+**What to say:**
+
+> "Maybe the attacker checks running processes, looks for credentials in memory..."
+
+> **[After output appears]**
+
+> "Still nothing. The JWT-SVID is delivered on-demand through a secure socket. It's never stored in process memory like a static token."
+
+---
+
+## Phase 4: Attack Failure - **THE BLOCK**
+
+```
+$ oc exec -n production-protected $PROTECTED_POD -- sh -c 'if [ -z "$VAULT_TOKEN" ]; then echo "No VAULT_TOKEN available"; echo "Cannot access Vault without dynamic credential"; exit 1; fi'
+No VAULT_TOKEN available
+Cannot access Vault without dynamic credential
+Attack blocked: No credentials available
+```
+
+**What to say:**
+
+> "Without a credential, the attacker can't access Vault. Let's see what happens when they try..."
+
+> **[After output appears]**
+
+> "Attack blocked."
+
+> **[Pause]**
+
+> "No database access. No API keys. No customer data. No fraud. The attack chain is broken at step one."
+
+---
+
+## Summary Table
+
+**Screen shows the comparison table**
+
+**What to say:**
+
+> "Let's look at what's different."
+
+> **[Read through the table - point to each row]**
+
+> "Vulnerable environment: Static token. Ninety days. Stored in an environment variable. Manual rotation - which means it never gets rotated."
+
+> **[Move finger down the table]**
+
+> "ZTWIM-protected: Dynamic JWT. Two minutes. Unix socket. Automatic rotation."
+
+> **[Point to Exfiltration Risk row]**
+
+> "Critical risk versus minimal risk."
+
+> **[Point to Persistence row]**
+
+> "Ninety days of access versus two minutes."
+
+> **[Pause]**
+
+> "Even if somehow an attacker did steal the JWT, it expires in two minutes. Not ninety days. Two minutes."
+
+---
+
+## Final Impact Statement
+
+**What to say:**
+
+> "The same attack that just breached one point two million dollars..."
+
+> **[Pause]**
+
+> "...is completely blocked."
+
+> **[Pause]**
+
+> "Same workload. Same database. Same Vault. The only difference is ZTWIM."
+
+> **[Let that land for 3 seconds]**
+
+---
+
+## Closing Transition
+
+**What to say:**
+
+> "This is what Zero Trust looks like in practice."
+
+> "Not just theory. Not just a whitepaper. Real protection against real attacks."
+
+> **[Pause]**
+
+> "And the best part? ZTWIM is included with OpenShift. No additional licensing. No separate product to buy."
+
+> "You can start protecting your first workload tomorrow."
+
+---
+
+## Q&A Preparation
+
+**Common questions after ZTWIM demo:**
+
+**"How long does it take to implement?"**
+> "For a pilot - one workload - you can have it running in a day. Full migration depends on your app count, but you can do it incrementally. Start with your most critical services."
+
+**"What about performance impact?"**
+> "Negligible. The JWT validation happens locally. You're trading a one-time Vault lookup for periodic JWT rotation, which is actually less load on Vault."
+
+**"Does this work with our existing apps?"**
+> "Yes. Your apps already have service accounts. ZTWIM uses those to issue workload identities. Most apps just need environment variable changes - point them to use the dynamic credential instead of the static one."
+
+**"What about non-OpenShift workloads?"**
+> "ZTWIM is built on SPIFFE/SPIRE, which is open source and works anywhere. But on OpenShift, it's integrated and supported out of the box."
+
+**"Can we see this in our environment?"**
+> "Absolutely. Let's schedule a proof of concept. We'll pick one of your workloads and show you the before and after."
+
+---
+
+## Success Indicators
+
+**You know Part 2 worked when:**
+
+✅ Someone says "wow" or "that's it?" when credentials aren't found  
+✅ Questions shift from "why" to "when can we start"  
+✅ Security team is taking notes on the comparison table  
+✅ Someone asks about rolling this out to production  
+✅ "What's the timeline to get this implemented?"  
+
+---
+
+## Pacing Notes
+
+- **Go slower** during the comparison table - let them read each row
+- **Pause** after "Attack blocked" - that's the payoff moment
+- **Speed up** through the process checks - they get the idea quickly
+- **Slow down again** for final impact statement
+
+---
+
+**Total Demo Time: 20-25 minutes**
+- Part 1 (Vulnerable): 15 minutes
+- Part 2 (Protected): 5-10 minutes
+
+The contrast is what makes this powerful. Show the pain, then show the solution. 🎯
