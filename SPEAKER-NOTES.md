@@ -243,9 +243,7 @@ $ oc exec -n production $POD -- psql ... "INSERT INTO transactions ... 'UNAUTHOR
 
 **Output shows:**
 ```
- id | customer_id |  amount   | transaction_type |              description               
-----+-------------+-----------+------------------+---------------------------------------
-  1 |           1 | -50000.00 | withdrawal       | UNAUTHORIZED - Attacker controlled...
+INSERT 0 1
 ```
 
 **What to say:**
@@ -254,11 +252,7 @@ $ oc exec -n production $POD -- psql ... "INSERT INTO transactions ... 'UNAUTHOR
 
 > **[After output appears]**
 
-> "Fifty thousand dollars. Unauthorized withdrawal. From John Anderson's account."
-
-> **[Pause]**
-
-> "**This is no longer just data theft. This is financial fraud. This is a crime.**"
+> "Transaction created. Let's see what they just did..."
 
 ---
 
@@ -268,13 +262,26 @@ $ oc exec -n production $POD -- psql ... "INSERT INTO transactions ... 'UNAUTHOR
 $ oc exec -n production $POD -- psql ... 'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;'
 ```
 
-**What to say:**
+**Output shows:**
+```
+ id | customer_id |  amount   | transaction_type |              description               
+----+-------------+-----------+------------------+---------------------------------------
+  1 |           1 | -50000.00 | withdrawal       | UNAUTHORIZED - Attacker controlled...
+```
 
-> "There it is in the transaction log."
+**What to say:**
 
 > **[After output appears]**
 
-> "It looks like a legitimate withdrawal. But it's completely fraudulent."
+> "Fifty thousand dollars. Unauthorized withdrawal. From John Anderson's account."
+
+> **[Pause]**
+
+> "**This is no longer just data theft. This is financial fraud. This is a crime.**"
+
+> **[Pause]**
+
+> "And it looks like a legitimate transaction in the database."
 
 ---
 

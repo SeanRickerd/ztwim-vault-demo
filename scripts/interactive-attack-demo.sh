@@ -59,7 +59,7 @@ run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -
 
 run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -t -c \"SELECT SUM(account_balance) as total_at_risk FROM customers;\"' | xargs echo 'Total at risk: \$'"
 
-run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"INSERT INTO transactions (customer_id, amount, transaction_type, description) VALUES (1, -50000.00, '\"'\"'withdrawal'\"'\"', '\"'\"'UNAUTHORIZED - Attacker controlled transfer'\"'\"') RETURNING *;\"'"
+run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"INSERT INTO transactions (customer_id, amount, transaction_type, description) VALUES (1, -50000.00, '\"'\"'withdrawal'\"'\"', '\"'\"'UNAUTHORIZED - Attacker controlled transfer'\"'\"');\"'"
 
 run_cmd "oc exec -n production \$POD -- sh -c 'PGPASSWORD=SuperSecret123! psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c \"SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;\"'"
 
