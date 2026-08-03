@@ -16,27 +16,33 @@ echo -e "${BLUE}+===============================================================
 echo ""
 
 # Delete production namespace
-echo -e "${BLUE}[1/4] Deleting production namespace...${NC}"
+echo -e "${BLUE}[1/5] Deleting production namespace...${NC}"
 oc delete namespace production --ignore-not-found=true
 echo -e "${GREEN}✓ Production namespace deleted${NC}"
 echo ""
 
+# Delete protected production namespace
+echo -e "${BLUE}[2/5] Deleting protected production namespace...${NC}"
+oc delete namespace production-protected --ignore-not-found=true
+echo -e "${GREEN}✓ Protected production namespace deleted${NC}"
+echo ""
+
 # Delete vault namespace
-echo -e "${BLUE}[2/4] Deleting vault namespace...${NC}"
+echo -e "${BLUE}[3/5] Deleting vault namespace...${NC}"
 oc delete namespace vault --ignore-not-found=true
 echo -e "${GREEN}✓ Vault namespace deleted${NC}"
 echo ""
 
 # Clean up temporary files
-echo -e "${BLUE}[3/4] Cleaning up temporary files...${NC}"
+echo -e "${BLUE}[4/5] Cleaning up temporary files...${NC}"
 rm -rf /tmp/demo-tokens
 rm -f /tmp/backdoor.yaml
 echo -e "${GREEN}✓ Temporary files cleaned${NC}"
 echo ""
 
 # Wait for namespaces to fully terminate
-echo -e "${BLUE}[4/4] Waiting for namespaces to fully terminate...${NC}"
-while oc get namespace production &>/dev/null || oc get namespace vault &>/dev/null; do
+echo -e "${BLUE}[5/5] Waiting for namespaces to fully terminate...${NC}"
+while oc get namespace production &>/dev/null || oc get namespace production-protected &>/dev/null || oc get namespace vault &>/dev/null; do
     echo -e "${YELLOW}  Waiting for namespaces to terminate...${NC}"
     sleep 5
 done

@@ -110,3 +110,127 @@ echo "  - Backdoor deployed for persistence"
 echo ""
 echo "================================================================================"
 echo ""
+
+cat << 'EOF'
+
+================================================================================
+                    NOW LET'S SEE ZTWIM PREVENTION
+================================================================================
+
+With ZTWIM (Zero Trust Workload Identity Manager), the same attack fails.
+
+Let's attempt the exact same attack against a ZTWIM-protected workload...
+
+EOF
+
+read -s
+
+# Check if protected environment exists
+if oc get namespace production-protected &>/dev/null; then
+    echo ""
+    echo "ZTWIM-Protected environment found. Attempting attack..."
+    echo ""
+    read -s
+
+    # Get protected pod
+    PROTECTED_POD=$(oc get pod -n production-protected -l app=payment-processor-protected -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+
+    if [[ -n "$PROTECTED_POD" ]]; then
+        run_cmd "export PROTECTED_POD=$PROTECTED_POD"
+        run_cmd "echo \"Protected pod: \$PROTECTED_POD\""
+
+        cat << 'EOF'
+
+Phase 1: Attempting to steal credentials from ZTWIM-protected workload...
+
+EOF
+        read -s
+
+        run_cmd "oc exec -n production-protected \$PROTECTED_POD -- printenv | grep -i vault || echo 'No static VAULT_TOKEN found'"
+
+        cat << 'EOF'
+
+Notice: No static VAULT_TOKEN in environment variables!
+
+ZTWIM uses dynamic JWT-SVIDs delivered via Unix domain socket.
+The credential is never stored in environment variables.
+
+Let's check the process environment...
+
+EOF
+        read -s
+
+        run_cmd "oc exec -n production-protected \$PROTECTED_POD -- ps aux | head -5"
+
+        cat << 'EOF'
+
+Even if the attacker gets shell access, there's no static token to steal.
+
+Let's see what happens if they try to access the database...
+
+EOF
+        read -s
+
+        run_cmd "oc exec -n production-protected \$PROTECTED_POD -- sh -c 'if [ -z \"\$VAULT_TOKEN\" ]; then echo \"No VAULT_TOKEN available\"; echo \"Cannot access Vault without dynamic credential\"; exit 1; fi' || echo 'Attack blocked: No credentials available'"
+
+        cat << 'EOF'
+
+================================================================================
+                         ZTWIM PROTECTION SUMMARY
+================================================================================
+
+What happened differently:
+
+VULNERABLE (Traditional):
+  ✗ Static token in environment variable (90-day TTL)
+  ✗ Token stolen via printenv
+  ✗ Token works from anywhere
+  ✗ Complete system breach
+
+PROTECTED (ZTWIM):
+  ✅ No static tokens in environment
+  ✅ Dynamic JWT-SVIDs (2-minute TTL)
+  ✅ Credentials delivered via Unix socket
+  ✅ Automatic rotation every 2 minutes
+  ✅ Workload identity tied to pod lifecycle
+  ✅ Even if stolen, expires in minutes
+
+Key Differences:
+
+┌─────────────────────┬──────────────────────┬──────────────────────┐
+│ Aspect              │ Vulnerable           │ ZTWIM-Protected      │
+├─────────────────────┼──────────────────────┼──────────────────────┤
+│ Credential Type     │ Static token         │ Dynamic JWT-SVID     │
+│ Token Lifetime      │ 90 days (2160 hours) │ 2 minutes (120 sec)  │
+│ Storage Location    │ Environment variable │ Unix domain socket   │
+│ Rotation            │ Manual               │ Automatic            │
+│ Exfiltration Risk   │ CRITICAL             │ MINIMAL              │
+│ Persistence         │ 90 days              │ 2 minutes            │
+└─────────────────────┴──────────────────────┴──────────────────────┘
+
+Impact: Same attack that breached $1.2M in vulnerable environment
+        is completely blocked in ZTWIM-protected environment.
+
+================================================================================
+
+EOF
+    else
+        echo ""
+        echo "Protected environment not ready."
+        echo ""
+        echo "To see ZTWIM protection in action:"
+        echo "  1. Run: ./setup-protected-ztwim-environment.sh"
+        echo "  2. Re-run this demo"
+        echo ""
+    fi
+else
+    echo ""
+    echo "ZTWIM-protected environment not set up."
+    echo ""
+    echo "To enable ZTWIM protection demo:"
+    echo "  1. Run: ./setup-protected-ztwim-environment.sh"
+    echo "  2. Re-run: ./interactive-attack-demo.sh"
+    echo ""
+    echo "The demo will show how the same attack is blocked by ZTWIM."
+    echo ""
+fi
