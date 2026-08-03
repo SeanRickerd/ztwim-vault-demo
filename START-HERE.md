@@ -51,6 +51,7 @@ This is a **realistic credential theft attack demonstration** showing:
 |--------|---------|
 | **`interactive-attack-demo.sh`** | 🎯 **Main demo script - run this!** |
 | **`setup-realistic-vulnerable-environment.sh`** | Setup before demo (includes Vault) |
+| **`cleanup-demo.sh`** | 🧹 **Cleanup after demo - removes all resources** |
 | **`setup-ztwim.sh`** | Deploy ZTWIM (for protected scenario) |
 | **`test-demo-environment.sh`** | Verify environment is ready |
 
@@ -95,7 +96,7 @@ oc get pods -n production
 ./interactive-attack-demo.sh
 
 # Cleanup after
-oc delete namespace production
+./cleanup-demo.sh
 ```
 
 ---
