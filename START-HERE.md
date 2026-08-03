@@ -5,12 +5,16 @@
 ### For Live Presentation:
 
 ```bash
-# 1. Setup (before audience arrives)
+# 1. Setup (before audience arrives - 7 minutes)
 cd /home/srickerd/ztwim-vault-demo/scripts
-./setup-realistic-vulnerable-environment.sh
-# This automatically deploys Vault + database + vulnerable app
 
-# 2. Run interactive demo
+# Deploy vulnerable environment (5 min)
+./setup-realistic-vulnerable-environment.sh
+
+# Deploy ZTWIM-protected environment (2 min)
+./setup-protected-ztwim-environment.sh
+
+# 2. Run interactive demo (20-25 minutes)
 ./interactive-attack-demo.sh
 
 # 3. Read speaker notes while demo runs
@@ -49,10 +53,11 @@ This is a **realistic credential theft attack demonstration** showing:
 
 | Script | Purpose |
 |--------|---------|
-| **`interactive-attack-demo.sh`** | 🎯 **Main demo script - run this!** |
-| **`setup-realistic-vulnerable-environment.sh`** | Setup before demo (includes Vault) |
+| **`interactive-attack-demo.sh`** | 🎯 **Main demo script - includes vulnerable & protected!** |
+| **`setup-realistic-vulnerable-environment.sh`** | Setup vulnerable environment (Vault + DB + app) |
+| **`setup-protected-ztwim-environment.sh`** | Setup ZTWIM-protected environment |
 | **`cleanup-demo.sh`** | 🧹 **Cleanup after demo - removes all resources** |
-| **`setup-ztwim.sh`** | Deploy ZTWIM (for protected scenario) |
+| **`setup-ztwim.sh`** | Legacy ZTWIM setup (use protected setup instead) |
 | **`test-demo-environment.sh`** | Verify environment is ready |
 
 ### Reference Files:
@@ -69,15 +74,23 @@ Old/duplicate files moved to `archive/` directory - ignore these.
 
 ---
 
-## Demo Flow (15-20 minutes)
+## Demo Flow (20-25 minutes)
 
+### Part 1: Vulnerable Attack (15 minutes)
 1. **Phase 1: Reconnaissance** (2 min) - Find the target
 2. **Phase 2: Initial Compromise** (2 min) - Discover Vault token
 3. **Phase 3: Vault Access** (3 min) - Steal DB creds & API keys
 4. **Phase 4: Database Breach** (5 min) ⚠️ **THE BIG MOMENT** - $1.2M exposed
 5. **Phase 5: Fraud** (3 min) ⚠️ **THE CRIME** - Unauthorized transaction
 6. **Phase 6: Persistence** (2 min) - Deploy backdoor
-7. **Summary** (3 min) - Impact assessment
+7. **Summary** (1 min) - Impact assessment
+
+### Part 2: ZTWIM Protection (5-10 minutes)
+8. **Transition** - "Now let's see ZTWIM prevention..."
+9. **Attack Attempt** - Same attack against protected workload
+10. **Attack Fails** - No static tokens to steal
+11. **Comparison** - Side-by-side: 90 days vs 2 minutes
+12. **Conclusion** - Same attack completely blocked
 
 ---
 
