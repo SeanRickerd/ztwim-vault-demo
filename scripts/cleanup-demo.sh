@@ -37,7 +37,19 @@ echo ""
 echo -e "${BLUE}[4/5] Cleaning up temporary files...${NC}"
 rm -rf /tmp/demo-tokens
 rm -f /tmp/backdoor.yaml
+rm -f /tmp/spire-ca.crt 2>/dev/null || true
 echo -e "${GREEN}✓ Temporary files cleaned${NC}"
+echo ""
+
+# Kill any lingering port-forwards
+echo -e "${BLUE}[4.5/5] Checking for lingering port-forwards...${NC}"
+PORTFORWARD_PIDS=$(ps aux | grep "oc port-forward" | grep -E "vault|production" | grep -v grep | awk '{print $2}' || true)
+if [[ -n "$PORTFORWARD_PIDS" ]]; then
+    echo "$PORTFORWARD_PIDS" | xargs kill -9 2>/dev/null || true
+    echo -e "${GREEN}✓ Port-forwards terminated${NC}"
+else
+    echo -e "${GREEN}✓ No port-forwards to clean${NC}"
+fi
 echo ""
 
 # Wait for namespaces to fully terminate
@@ -53,6 +65,34 @@ echo -e "${GREEN}+==============================================================
 echo -e "${GREEN}|  Cleanup Complete!                                                 |${NC}"
 echo -e "${GREEN}+====================================================================+${NC}"
 echo ""
-echo -e "${BLUE}Environment is ready for a fresh demo setup.${NC}"
+
+# Verification
+echo -e "${BLUE}Verification:${NC}"
+echo -e "  Checking for demo namespaces..."
+REMAINING_NS=$(oc get namespace 2>/dev/null | grep -E "^(production|vault)" | wc -l)
+if [[ $REMAINING_NS -eq 0 ]]; then
+    echo -e "  ${GREEN}✓ No demo namespaces found${NC}"
+else
+    echo -e "  ${YELLOW}⚠ Warning: $REMAINING_NS demo namespace(s) still terminating${NC}"
+fi
+
+echo -e "  Checking for temporary files..."
+TEMP_FILES=$(ls -1 /tmp/demo-tokens /tmp/backdoor.yaml /tmp/spire-ca.crt 2>/dev/null | wc -l)
+if [[ $TEMP_FILES -eq 0 ]]; then
+    echo -e "  ${GREEN}✓ No temporary files found${NC}"
+else
+    echo -e "  ${YELLOW}⚠ Warning: $TEMP_FILES temporary file(s) remaining${NC}"
+fi
+
+echo -e "  Checking for port-forwards..."
+PF_COUNT=$(ps aux | grep "oc port-forward" | grep -E "vault|production" | grep -v grep | wc -l)
+if [[ $PF_COUNT -eq 0 ]]; then
+    echo -e "  ${GREEN}✓ No port-forwards running${NC}"
+else
+    echo -e "  ${YELLOW}⚠ Warning: $PF_COUNT port-forward(s) still running${NC}"
+fi
+
+echo ""
+echo -e "${GREEN}Cluster is clean and ready for a fresh demo setup.${NC}"
 echo -e "${BLUE}Run: ./setup-realistic-vulnerable-environment.sh${NC}"
 echo ""
