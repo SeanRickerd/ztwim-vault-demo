@@ -291,7 +291,7 @@ cat <<'EOSQL' | oc exec -i -n ${VULNERABLE_NS} ${DB_POD} -- psql -U customerdb -
 CREATE TABLE IF NOT EXISTS customers (
   id SERIAL PRIMARY KEY,
   customer_name VARCHAR(100) NOT NULL,
-  email VARCHAR(100) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
   account_balance DECIMAL(10,2) NOT NULL,
   credit_card VARCHAR(19) NOT NULL,
   ssn VARCHAR(11) NOT NULL,
@@ -333,6 +333,16 @@ VAULT_POD=$(oc get pod -n ${VAULT_NS} -l app.kubernetes.io/name=vault -o jsonpat
 
 VAULT_ADDR="http://vault.${VAULT_NS}.svc.cluster.local:8200"
 
+# Create policy for accessing secrets
+oc exec -n ${VAULT_NS} ${VAULT_POD} -- sh -c "VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root vault policy write payment-access - <<EOF
+path \"secret/data/*\" {
+  capabilities = [\"read\", \"list\"]
+}
+path \"secret/metadata/*\" {
+  capabilities = [\"read\", \"list\"]
+}
+EOF"
+
 # Store database credentials in Vault
 oc exec -n ${VAULT_NS} ${VAULT_POD} -- sh -c "VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root vault kv put secret/database/production \
   host='customer-database.${VULNERABLE_NS}.svc.cluster.local' \
@@ -355,9 +365,9 @@ echo ""
 # Create vulnerable application with static Vault token
 echo -e "${BLUE}[6/7] Deploying vulnerable payment processing application...${NC}"
 
-# Create a 90-day Vault token
+# Create a 90-day Vault token with payment-access policy
 VAULT_TOKEN=$(oc exec -n ${VAULT_NS} ${VAULT_POD} -- sh -c "VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=root vault token create \
-  -policy=default \
+  -policy=payment-access \
   -ttl=2160h \
   -format=json" | jq -r '.auth.client_token')
 
