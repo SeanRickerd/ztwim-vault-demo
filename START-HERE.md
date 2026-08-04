@@ -28,7 +28,7 @@ cd /ztwim-vault-demo/scripts
 
 ```bash
 # 1. Setup (before audience arrives - 7 minutes)
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd /ztwim-vault-demo/scripts
 
 # Deploy vulnerable environment (5 min)
 ./setup-realistic-vulnerable-environment.sh
@@ -40,7 +40,7 @@ cd /home/srickerd/ztwim-vault-demo/scripts
 ./interactive-attack-demo.sh
 
 # 3. Read speaker notes while demo runs
-cat /home/srickerd/ztwim-vault-demo/SPEAKER-NOTES.md
+cat /ztwim-vault-demo/SPEAKER-NOTES.md
 ```
 
 ---
@@ -120,7 +120,7 @@ Old/duplicate files moved to `archive/` directory - ignore these.
 
 ```bash
 # Setup
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd /ztwim-vault-demo/scripts
 ./setup-realistic-vulnerable-environment.sh
 
 # Verify ready
