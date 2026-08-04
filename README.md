@@ -1,153 +1,197 @@
-# ZTWIM 1.1 + Vault Integration - Adversarial Demo
+# ZTWIM Realistic Attack Demo
 
 [![OpenShift](https://img.shields.io/badge/OpenShift-4.20%2B-red)](https://www.openshift.com/)
 [![SPIFFE](https://img.shields.io/badge/SPIFFE-compliant-blue)](https://spiffe.io/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 
-This demo showcases how Zero Trust Workload Identity Manager (ZTWIM) 1.1 integrated with HashiCorp Vault through OIDC federation **completely prevents** service account token theft and replay attacks.
+**Interactive demonstration showing how ZTWIM (Zero Trust Workload Identity Manager) prevents credential theft attacks that would otherwise breach $1.2M+ in customer data.**
 
-## 🎯 What You'll Learn
+---
 
-- Why traditional Kubernetes service account tokens are vulnerable
-- How attackers steal and replay credentials to access secrets
-- How ZTWIM's cryptographic workload identity prevents these attacks
-- The security benefits of SPIFFE-based authentication with Vault
+## 🎯 What This Demonstrates
 
-## ⚡ Quick Start
+**Part 1: Vulnerable Environment**
+- Complete credential theft attack on production workload
+- Static Vault token stolen from environment variables (90-day TTL)
+- Database credentials compromised
+- Customer data exfiltrated (credit cards, SSNs, $1.2M+ in accounts)
+- Fraudulent transactions created
+- Backdoor deployed for persistence
+
+**Part 2: ZTWIM-Protected Environment**
+- Same attack attempted against ZTWIM-protected workload
+- Attack completely blocked (no static tokens to steal)
+- Dynamic JWT-SVIDs with 2-minute expiry
+- Side-by-side comparison: 90 days vs 2 minutes
+
+---
+
+## ⚡ Quick Start (30 minutes total)
 
 ```bash
-# Clone the demo
-git clone <this-repo>
-cd ztwim-vault-demo
+# Clone the repository
+git clone https://github.com/SeanRickerd/ztwim-vault-demo.git
+cd ztwim-vault-demo/scripts
 
-# Deploy secrets manager (OpenBao or Vault)
-cd scripts
-./setup-secrets-manager.sh
+# 1. Setup vulnerable environment (5 minutes)
+./setup-realistic-vulnerable-environment.sh
 
-# Run automated demo (recommended)
-./demo-runner.sh
+# 2. Setup ZTWIM-protected environment (2 minutes)
+./setup-protected-ztwim-environment.sh
 
-# Or follow the manual quick start guide
-See QUICKSTART.md for step-by-step instructions
+# 3. Run interactive demo (20-25 minutes)
+./interactive-attack-demo.sh
+# Press Enter at each blank $ prompt to advance
+# Narrate using SPEAKER-NOTES.md
+
+# 4. Cleanup (1 minute)
+./cleanup-demo.sh
 ```
 
-### Secrets Manager Options
+**That's it!** The demo is fully automated and repeatable.
 
-This demo supports **OpenBao** (recommended) or **HashiCorp Vault**:
-- **OpenBao**: 100% Vault-compatible, true open-source, community-governed
-- **Vault**: Industry standard, enterprise features available
+---
 
-See [DEPLOYMENT_OPTIONS.md](DEPLOYMENT_OPTIONS.md) for detailed comparison.
+## 📚 Documentation
 
-## 📋 Documentation Index
+**Essential Files:**
 
-- **[QUICKSTART.md](QUICKSTART.md)** - 5-minute setup and execution guide
-- **[DEPLOYMENT_OPTIONS.md](DEPLOYMENT_OPTIONS.md)** - OpenBao vs Vault comparison and setup
-- **[PRESENTATION.md](PRESENTATION.md)** - Complete presentation guide with talking points
-- **[COMPARISON.md](COMPARISON.md)** - Security comparison tables and metrics
-- **[DEMO_CHECKLIST.md](DEMO_CHECKLIST.md)** - Pre-flight checklist for live demos
-- **[SUMMARY.md](SUMMARY.md)** - Executive summary and business case
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Visual diagrams and architecture flows
+| File | Purpose |
+|------|---------|
+| **[START-HERE.md](START-HERE.md)** | Complete guide - start here! |
+| **[SPEAKER-NOTES.md](SPEAKER-NOTES.md)** | What to say during the demo |
+| **[DEMO-WORKFLOW.md](DEMO-WORKFLOW.md)** | Quick reference for presenters |
+| **[CLEANUP-CHECKLIST.md](CLEANUP-CHECKLIST.md)** | Cleanup verification |
 
-## 🎭 Attack Scenario: Service Account Token Theft & Replay
+**Reference Files:**
 
-### The Vulnerability (Without ZTWIM)
+| File | Purpose |
+|------|---------|
+| `INTERACTIVE-DEMO-README.md` | Detailed demo execution guide |
+| `REALISTIC-DEMO-GUIDE.md` | Presenter guide with timing |
+| `OPENSHIFT-SCC-GUIDE.md` | Troubleshooting permissions |
 
-In traditional OpenShift deployments, applications authenticate to Vault using:
-- Static Kubernetes service account tokens mounted as secrets
-- Long-lived tokens that don't expire
-- Tokens that can be exfiltrated and replayed from anywhere
+---
 
-**Attack Flow:**
-1. Attacker compromises a pod (e.g., via RCE, SSRF, or container breakout)
-2. Reads the service account token from `/var/run/secrets/kubernetes.io/serviceaccount/token`
-3. Exfiltrates the token to external system
-4. Uses the token to authenticate to Vault from attacker's infrastructure
-5. Accesses secrets and persists access indefinitely
+## 🎬 Demo Flow
 
-### The Defense (With ZTWIM + Vault)
+### Setup (7 minutes before audience arrives)
+1. Deploy vulnerable environment with Vault, database, and static tokens
+2. Deploy ZTWIM-protected environment with dynamic credentials
 
-ZTWIM replaces static tokens with cryptographically-bound workload identities:
-- **SPIFFE IDs**: Each workload gets a unique identity (e.g., `spiffe://cluster.local/ns/myapp/sa/myservice`)
-- **Short-lived SVIDs**: X.509 certificates valid for minutes, not months
-- **Workload attestation**: Identity bound to pod's actual runtime attributes (namespace, service account, node)
-- **Vault OIDC integration**: Vault validates SPIFFE identity via OIDC before issuing secrets
+### Presentation (20-25 minutes)
+1. **Part 1** (15 min): Show complete breach of vulnerable environment
+   - Steal credentials → Access Vault → Exfiltrate data → Commit fraud
+2. **Part 2** (5-10 min): Show same attack blocked by ZTWIM
+   - No static tokens → Attack fails → Show comparison table
 
-**Attack Mitigation:**
-1. Attacker compromises pod and attempts to steal credentials
-2. SPIFFE SVID (X.509 cert) expires within minutes
-3. Even if exfiltrated, Vault's OIDC validation checks:
-   - Token signature against SPIRE's OIDC discovery keys
-   - Token claims match expected SPIFFE ID format
-   - Token hasn't expired
-4. Token cannot be replayed from external infrastructure (workload attestation binds it to cluster context)
-5. Attack fails - no persistent access gained
+### Cleanup (1 minute)
+- Single script removes all demo resources
+- Cluster returns to pre-demo state
 
-## Demo Structure
+---
 
-```
-├── scenario-1-vulnerable/      # Traditional static secret approach
-│   ├── deploy/                 # Vulnerable workload manifests
-│   ├── attack/                 # Attack simulation scripts
-│   └── README.md               # Scenario walkthrough
-│
-├── scenario-2-protected/       # ZTWIM + Vault integration
-│   ├── deploy/                 # Protected workload manifests
-│   ├── ztwim-config/           # ZTWIM operator configuration
-│   ├── vault-config/           # Vault OIDC integration
-│   ├── attack/                 # Same attack (will fail)
-│   └── README.md               # Scenario walkthrough
-│
-└── scripts/
-    ├── setup-vault.sh          # Vault initialization
-    ├── setup-ztwim.sh          # ZTWIM operator deployment
-    └── demo-runner.sh          # Automated demo execution
-```
+## 💡 What Makes This Demo Powerful
 
-## Prerequisites
+✅ **Real commands** - No simulations, actual `oc exec`, `psql`, `curl`  
+✅ **Real data** - Live PostgreSQL with 10 customers, $1.2M total  
+✅ **Real impact** - Shows actual credential theft and fraud  
+✅ **Interactive** - Pause at each step, control the pacing  
+✅ **Dramatic** - Builds from discovery to $1.2M breach  
+✅ **Before/After** - Side-by-side vulnerable vs. protected  
+✅ **Repeatable** - Run on same cluster multiple times  
 
-- OpenShift 4.20+ cluster
-- Cluster admin access
-- HashiCorp Vault instance (can be in-cluster or external)
-- ZTWIM operator installed (for scenario 2)
+---
 
-## Quick Start
+## 🛠️ Requirements
 
-### Scenario 1: Vulnerable Deployment
+- OpenShift 4.x cluster (or Kubernetes with minor adjustments)
+- `oc` CLI configured and authenticated
+- Cluster-admin permissions (for SCC bindings)
+- ~5 minutes of cluster time before demo
+
+---
+
+## 📊 Demo Statistics
+
+- **Customer records:** 10 with PII (credit cards, SSNs)
+- **Total at risk:** $1,238,652.75
+- **Vulnerable token TTL:** 90 days (2,160 hours)
+- **Protected token TTL:** 2 minutes (120 seconds)
+- **Attack phases:** 7 (reconnaissance → persistence)
+- **Time to breach:** ~5 minutes with stolen token
+
+---
+
+## 🎯 Key Differences Shown
+
+| Aspect | Vulnerable | ZTWIM-Protected |
+|--------|-----------|-----------------|
+| Credential Type | Static token | Dynamic JWT-SVID |
+| Token Lifetime | 90 days | 2 minutes |
+| Storage | Environment variable | Unix socket |
+| Rotation | Manual | Automatic |
+| Exfiltration Risk | **CRITICAL** | **MINIMAL** |
+| Attack Result | $1.2M breach | **Blocked** |
+
+---
+
+## 🔄 Repeatability
+
+The demo is designed to be run multiple times on the same cluster:
+
 ```bash
-cd scenario-1-vulnerable
-./attack/demonstrate-theft.sh
-# Shows successful token theft and Vault access
+# Run demo cycle as many times as needed
+./setup-realistic-vulnerable-environment.sh
+./setup-protected-ztwim-environment.sh
+./interactive-attack-demo.sh
+./cleanup-demo.sh
+
+# Repeat immediately
+./setup-realistic-vulnerable-environment.sh
+...
 ```
 
-### Scenario 2: Protected Deployment
-```bash
-cd scenario-2-protected
-./attack/demonstrate-theft.sh
-# Shows attack failure due to SPIFFE identity binding
+Each cleanup returns the cluster to pre-demo state.
+
+---
+
+## 📁 Repository Structure
+
+```
+ztwim-vault-demo/
+├── scripts/
+│   ├── interactive-attack-demo.sh              # Main demo script
+│   ├── setup-realistic-vulnerable-environment.sh
+│   ├── setup-protected-ztwim-environment.sh
+│   └── cleanup-demo.sh
+├── START-HERE.md                               # Start here!
+├── SPEAKER-NOTES.md                            # Narration guide
+├── DEMO-WORKFLOW.md                            # Quick reference
+├── CLEANUP-CHECKLIST.md                        # Cleanup verification
+└── README.md                                   # This file
 ```
 
-## Key Demo Talking Points
+---
 
-1. **Static vs. Dynamic Identity**
-   - Traditional: "You are who holds the token"
-   - ZTWIM: "You are who the platform attests you to be"
+## 🤝 Contributing
 
-2. **Token Lifecycle**
-   - Static tokens: Never expire, unlimited replay window
-   - SPIFFE SVIDs: Auto-rotate every 1-5 minutes
+This demo is maintained as an internal tool for demonstrating ZTWIM capabilities. Feedback and improvements welcome!
 
-3. **Blast Radius**
-   - Without ZTWIM: One compromised pod = persistent Vault access
-   - With ZTWIM: Compromised pod has minutes before credentials expire
+---
 
-4. **Zero Trust Principles**
-   - Never trust, always verify
-   - Cryptographic workload identity
-   - Least privilege access with time-bound credentials
+## 📝 License
 
-## References
+Apache 2.0 - See [LICENSE](LICENSE) file for details.
 
-- [ZTWIM Official Documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.20/html/security_and_compliance/zero-trust-workload-identity-manager)
-- [ZTWIM + Vault OIDC Integration](https://developers.redhat.com/articles/2026/05/08/federated-identity-across-hybrid-cloud-using-zero-trust-workload-identity)
-- [SPIFFE/SPIRE Project](https://spiffe.io)
+---
+
+## 🎓 Learn More
+
+- **ZTWIM Documentation:** [Red Hat ZTWIM](https://access.redhat.com/documentation/en-us/red_hat_ztwim/)
+- **SPIFFE/SPIRE:** [spiffe.io](https://spiffe.io/)
+- **Zero Trust:** [NIST SP 800-207](https://www.nist.gov/publications/zero-trust-architecture)
+
+---
+
+**Ready to show the power of Zero Trust Workload Identity? Start with [START-HERE.md](START-HERE.md)!** 🚀

@@ -1,5 +1,27 @@
 # ZTWIM Realistic Attack Demo - START HERE
 
+## 🚀 Three Steps to Run the Demo
+
+```bash
+cd /home/srickerd/ztwim-vault-demo/scripts
+
+# Step 1: Setup (7 minutes)
+./setup-realistic-vulnerable-environment.sh  # 5 min - Vault + DB + vulnerable app
+./setup-protected-ztwim-environment.sh       # 2 min - ZTWIM-protected app
+
+# Step 2: Run Demo (20-25 minutes)
+./interactive-attack-demo.sh
+# Press Enter at each blank $ prompt
+# Narrate using SPEAKER-NOTES.md
+
+# Step 3: Cleanup (1 minute)
+./cleanup-demo.sh  # Removes everything, cluster returns to pre-demo state
+```
+
+**That's it! Demo is ready to run.** 🎯
+
+---
+
 ## Quick Start
 
 ### For Live Presentation:
