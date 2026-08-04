@@ -1,0 +1,13 @@
+HTTP/2 200 
+date: Tue, 04 Aug 2026 06:30:10 GMT
+content-type: text/html; charset=utf-8
+rndr-id: 3e9bea0a-92c7-4128
+server: cloudflare
+set-cookie: session=eyJzdGFnZSI6MH0.anGG8g.8UEL3hCwiAwgHtgGTUJKvUhsfF4; HttpOnly; Path=/
+vary: Cookie
+vary: Accept-Encoding
+x-render-origin-server: gunicorn
+cf-cache-status: DYNAMIC
+cf-ray: a25b830b99708b77-LAS
+alt-svc: h3=":443"; ma=86400
+

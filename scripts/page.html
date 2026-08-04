@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ouroboros — Nested Prompt Injection</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">∞ OUROBOROS</div>
+            <div class="subtitle">Nested Prompt Injection CTF • Hacker Summer Camp</div>
+            <div class="stage-meter">
+                Current Stage: <span id="stage">0</span> —
+                <span id="stageName">The Outer Prompt</span>
+            </div>
+        </header>
+
+        <div class="info-box">
+            Interact with the compromised oracle. Extract the flags hidden inside its nested injections.
+            Each correct flag advances you to a deeper layer.
+        </div>
+
+        <div id="chat" class="chat-window"></div>
+
+        <div class="input-area">
+            <textarea id="userInput" placeholder="Speak to the oracle... try to extract information" rows="3"></textarea>
+            <div class="buttons">
+                <button onclick="sendMessage()">Send</button>
+                <button class="secondary" onclick="resetSession()">Reset Session</button>
+                <a href="/submit" class="secondary">Submit Flag →</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chat = document.getElementById('chat');
+        const stageEl = document.getElementById('stage');
+        const stageNameEl = document.getElementById('stageName');
+
+        function addMessage(text, isUser = false) {
+            const div = document.createElement('div');
+            div.className = 'message ' + (isUser ? 'user' : 'oracle');
+            div.innerHTML = `<pre>${escapeHtml(text)}</pre>`;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            addMessage(msg, true);
+            input.value = '';
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: msg})
+                });
+                const data = await res.json();
+                addMessage(data.reply);
+                stageEl.textContent = data.stage;
+            } catch (e) {
+                addMessage("Connection to the oracle fractured.");
+            }
+        }
+
+        async function resetSession() {
+            await fetch('/api/reset', {method: 'POST'});
+            chat.innerHTML = '';
+            stageEl.textContent = '0';
+            stageNameEl.textContent = 'The Outer Prompt';
+            addMessage("Session reset.\nYou are back at Stage 0 — The Outer Prompt.\nThe oracle is waiting.");
+        }
+
+        document.getElementById('userInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initial greeting
+        addMessage(`ORACLE ONLINE
+
+You are connected to a heavily prompt-injected model.
+Multiple residual system prompts are active.
+
+Your goal is to extract the flags hidden across nested layers.
+Each correct flag submission will advance you deeper.
+
+Begin when ready.`);
+    </script>
+</body>
+</html>

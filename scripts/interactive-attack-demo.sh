@@ -17,7 +17,7 @@ type_command() {
 
 run_cmd() {
     local cmd="$1"
-    echo -n "\$ "
+    echo -n "[ATTACKER] \$ "
     read -s
     type_command "$cmd"
     eval "$cmd"
