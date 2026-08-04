@@ -3,7 +3,7 @@
 ## 🚀 Three Steps to Run the Demo
 
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd /ztwim-vault-demo/scripts
 
 # Step 1: Setup (7 minutes)
 ./setup-realistic-vulnerable-environment.sh  # 5 min - Vault + DB + vulnerable app
