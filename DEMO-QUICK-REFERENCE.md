@@ -4,7 +4,7 @@
 
 ```bash
 # 1. Navigate to demo directory
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 
 # 2. Deploy realistic vulnerable environment
 ./setup-realistic-vulnerable-environment.sh

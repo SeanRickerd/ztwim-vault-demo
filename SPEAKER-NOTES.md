@@ -26,7 +26,7 @@ This is a **pure terminal session** with typing animation. Commands type out cha
 ## Running the Demo
 
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 ./interactive-attack-demo.sh
 ```
 

@@ -32,7 +32,7 @@ This is an enhanced, highly realistic demonstration showing the complete busines
 ### Setup Command
 
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 
 # Deploy complete vulnerable environment
 ./setup-realistic-vulnerable-environment.sh

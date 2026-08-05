@@ -206,7 +206,7 @@ pod/backdoor-exfil created
 
 ### Setup (before presentation)
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 ./setup-realistic-vulnerable-environment.sh
 ```
 

@@ -3,7 +3,7 @@
 ## Pre-Demo Setup (7 minutes)
 
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 
 # Setup vulnerable environment (5 min)
 ./setup-realistic-vulnerable-environment.sh

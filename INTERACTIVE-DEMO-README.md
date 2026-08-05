@@ -19,7 +19,7 @@ An interactive, presenter-friendly demo that shows **real commands and real outp
 ### 1. Setup (Before your presentation)
 
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 
 # Deploy the vulnerable environment
 ./setup-realistic-vulnerable-environment.sh
@@ -36,7 +36,7 @@ oc get pods -n production
 ### 2. Run the Demo
 
 ```bash
-cd /home/srickerd/ztwim-vault-demo/scripts
+cd ztwim-vault-demo/scripts
 
 # Start the interactive demo
 ./interactive-attack-demo.sh
@@ -58,7 +58,7 @@ cd /home/srickerd/ztwim-vault-demo/scripts
 Open this in a second terminal or print it out:
 
 ```bash
-cat /home/srickerd/ztwim-vault-demo/SPEAKER-NOTES.md
+cat ztwim-vault-demo/SPEAKER-NOTES.md
 ```
 
 This has:
