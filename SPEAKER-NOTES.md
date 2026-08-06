@@ -516,26 +516,10 @@ No static VAULT_TOKEN found
 
 ---
 
-## Phase 3: Process Check
+## Phase 3: Attack Failure - **THE BLOCK**
 
 ```
-$ oc exec -n production-protected $PROTECTED_POD -- ps aux | head -5
-```
-
-**What to say:**
-
-> "Maybe the attacker checks running processes, looks for credentials in memory..."
-
-> **[After output appears]**
-
-> "Still nothing. The JWT-SVID is delivered on-demand through a secure socket. It's never stored in process memory like a static token."
-
----
-
-## Phase 4: Attack Failure - **THE BLOCK**
-
-```
-$ oc exec -n production-protected $PROTECTED_POD -- sh -c 'if [ -z "$VAULT_TOKEN" ]; then echo "No VAULT_TOKEN available"; echo "Cannot access Vault without dynamic credential"; exit 1; fi'
+[ATTACKER] $ oc exec -n production-protected $PROTECTED_POD -- sh -c 'if [ -z "$VAULT_TOKEN" ]; then echo "No VAULT_TOKEN available"; echo "Cannot access Vault without dynamic credential"; exit 1; fi'
 No VAULT_TOKEN available
 Cannot access Vault without dynamic credential
 Attack blocked: No credentials available
@@ -543,7 +527,7 @@ Attack blocked: No credentials available
 
 **What to say:**
 
-> "Without a credential, the attacker can't access Vault. Let's see what happens when they try..."
+> "The attacker has shell access, but no credential to use. Let's see what happens when they try to access Vault..."
 
 > **[After output appears]**
 
@@ -551,7 +535,11 @@ Attack blocked: No credentials available
 
 > **[Pause]**
 
-> "No database access. No API keys. No customer data. No fraud. The attack chain is broken at step one."
+> "No VAULT_TOKEN. No database access. No API keys. No customer data. No fraud."
+
+> **[Pause]**
+
+> "The attack chain is broken at step one."
 
 ---
 

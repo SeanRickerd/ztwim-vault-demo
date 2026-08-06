@@ -130,8 +130,6 @@ if oc get namespace production-protected &>/dev/null; then
 
         run_cmd "oc exec -n production-protected \$PROTECTED_POD -- printenv | grep -i vault || echo 'No static VAULT_TOKEN found'"
 
-        run_cmd "oc exec -n production-protected \$PROTECTED_POD -- ps aux | head -5"
-
         run_cmd "oc exec -n production-protected \$PROTECTED_POD -- sh -c 'if [ -z \"\$VAULT_TOKEN\" ]; then echo \"No VAULT_TOKEN available\"; echo \"Cannot access Vault without dynamic credential\"; exit 1; fi' || echo 'Attack blocked: No credentials available'"
 
         echo ""
