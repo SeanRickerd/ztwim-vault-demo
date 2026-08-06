@@ -545,9 +545,13 @@ Attack blocked: No credentials available
 
 ## Summary Table
 
+**[Press Enter to show the comparison]**
+
 **Screen shows the comparison table**
 
 **What to say:**
+
+> **[After pressing Enter and summary appears]**
 
 > "Let's look at what's different."
 
